@@ -239,35 +239,510 @@ class CourseManager:
         return result
 
 # Чтение входных данных
-students_info = input()
-scores_info = input()
+# students_info = input(). # ЭТО ЧАСТЬ РЕШЕНИЯ!!! РАСКОММЕНТИРОВАТЬ !!!
+# scores_info = input()
 
-# Создаем менеджер курсов
-manager = CourseManager()
+# # Создаем менеджер курсов
+# manager = CourseManager()
 
-# Парсим информацию о студентах
-records = students_info.split(';')
-for record in records:
-    if record:  # проверяем, что запись не пустая
-        name, course, score = record.split(',')
-        manager.add_student_score(name, course, int(score))
+# # Парсим информацию о студентах
+# records = students_info.split(';')
+# for record in records:
+#     if record:  # проверяем, что запись не пустая
+#         name, course, score = record.split(',')
+#         manager.add_student_score(name, course, int(score))
 
-# Парсим информацию о запросе
-target_course, threshold = scores_info.split(',')
-threshold = int(threshold)
+# # Парсим информацию о запросе
+# target_course, threshold = scores_info.split(',')
+# threshold = int(threshold)
 
-# Получаем студентов с баллами выше порога
-qualified_students = manager.get_students_above_threshold(target_course, threshold)
+# # Получаем студентов с баллами выше порога
+# qualified_students = manager.get_students_above_threshold(target_course, threshold)
 
-# Формируем вывод
-if qualified_students:
-    for name, score in qualified_students:
-        print(f"{name},{score}")
-else:
-    print("Никто")
+# # Формируем вывод
+# if qualified_students:
+#     for name, score in qualified_students:
+#         print(f"{name},{score}")
+# else:
+#     print("Никто")    # КОНЕЦ РЕШЕНИЯ!!! РАСКОММЕНТИРОВАТЬ !!!
+
+"================================================TESTS================================================"
+def test_student_ranking():
+    """Тест для примера 1: обычный случай с сортировкой по убыванию баллов"""
+    students_info = "Анна,Математика,85;Анна,Химия,90;Борис,Математика,75;Борис,История,80;Евгений,Математика,95;Евгений,История,85"
+    scores_info = "Математика,80"
+    
+    # Создаем менеджер курсов
+    manager = CourseManager()
+    
+    # Парсим информацию о студентах
+    records = students_info.split(';')
+    for record in records:
+        if record:
+            name, course, score = record.split(',')
+            manager.add_student_score(name, course, int(score))
+    
+    # Парсим информацию о запросе
+    target_course, threshold = scores_info.split(',')
+    threshold = int(threshold)
+    
+    # Получаем студентов с баллами выше порога
+    qualified_students = manager.get_students_above_threshold(target_course, threshold)
+    
+    # Проверяем результат
+    expected = [('Евгений', 95), ('Анна', 85)]
+    assert qualified_students == expected, f"Ожидалось {expected}, получено {qualified_students}"
+
+def test_no_students_above_threshold():
+    """Тест для примера 2: никто не прошел порог"""
+    students_info = "Анна,Психология,8;Алексей,Психология,6"
+    scores_info = "Психология,8"
+    
+    manager = CourseManager()
+    
+    records = students_info.split(';')
+    for record in records:
+        if record:
+            name, course, score = record.split(',')
+            manager.add_student_score(name, course, int(score))
+    
+    target_course, threshold = scores_info.split(',')
+    threshold = int(threshold)
+    
+    qualified_students = manager.get_students_above_threshold(target_course, threshold)
+    
+    expected = []
+    assert qualified_students == expected, f"Ожидалось {expected}, получено {qualified_students}"
+
+test_student_ranking()
+test_no_students_above_threshold()
+
+"================================================END TESTS================================================"
+
+"""
+STATUS: решение проверено публичными тестами
+
+Отчёты по продажам
+Описание:
+Напишите программу, которая принимает информацию о продажах и формирует агрегированный отчёт 
+о продажах по месяцам в соответствии с требуемым форматом.
+
+Формат ввода:
+Одна строка с данными в формате Дата:Продукт:Количество;Дата:Продукт:Количество;....
+Дата в формате YYYY-MM-DD, через двоеточие указано название продукта на русском языке 
+и через ещё одно двоеточие — целое число, указывающее на количество проданных товаров.
+
+Формат вывода:
+Набор строк, в котором выводится информация о продажах товаров. 
+Сначала даётся название месяца с двоеточием, а после — маркированным списком с дефисом 
+перечисляются товары с количеством продаж через двоеточие.
+"""
+
+class Item:
+    def __init__(self, date, product, quantity):
+        self.date = date
+        self.product = product
+        self.quantity = quantity
+
+    @property
+    def month(self):
+        months_dict = {
+            "01": "Январь",
+            "02": "Февраль",
+            "03": "Март",
+            "04": "Апрель",
+            "05": "Май",
+            "06": "Июнь",
+            "07": "Июль",
+            "08": "Август",
+            "09": "Сентябрь",
+            "10": "Октябрь",
+            "11": "Ноябрь",
+            "12": "Декабрь"
+        }
+        month = self.date.split('-')[1]
+        return months_dict.get(month, "Неизвестный месяц")
 
 
-# TODO добавить тесты
+def generate_monthly_report(data):
+    """Генерирует отчет по месяцам"""
+    if not data:
+        return
+    
+    # Разбиваем входные данные на записи
+    records = data.split(';')
+    items = []
+    
+    # Парсим каждую запись
+    for record in records:
+        if record:  # проверяем, что запись не пустая
+            parts = record.split(':')
+            if len(parts) == 3:
+                date, product, quantity = parts
+                items.append(Item(date, product, int(quantity)))
+    
+    # Группируем по месяцам
+    monthly_data = {}
+    for item in items:
+        month_name = item.month
+        if month_name not in monthly_data:
+            monthly_data[month_name] = {}
+        
+        if item.product not in monthly_data[month_name]:
+            monthly_data[month_name][item.product] = 0
+        monthly_data[month_name][item.product] += item.quantity
+    
+    # Сортируем месяцы по порядку (от января к декабрю)
+    month_order = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", 
+                   "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"]
+    
+    sorted_months = sorted(monthly_data.keys(), 
+                          key=lambda x: month_order.index(x) if x in month_order else 999)
+    
+    # Генерируем отчет
+    for month in sorted_months:
+        yield f"{month}:"
+        yield ""  # пустая строка после названия месяца
+        
+        # Сортируем товары по алфавиту
+        sorted_products = sorted(monthly_data[month].items(), key=lambda x: x[0])
+        
+        for product, quantity in sorted_products:
+            yield f"- {product}: {quantity}"
+        
+        # Добавляем пустую строку между месяцами (кроме последнего)
+        if month != sorted_months[-1]:
+            yield ""
 
+
+# Чтение входных данных и вывод отчета
+# input_data = input() # закомментировал, чтоб не мешать тестам
+# monthly_report_generator = generate_monthly_report(input_data)
+# for report in monthly_report_generator:
+#     print(report)
+
+monthly_report_generator = generate_monthly_report("2023-01-15:Книга:10;2023-01-20:Орешки:5;2023-02-05:Наушники:8")
+assert next(monthly_report_generator) == "Январь:"
+assert next(monthly_report_generator) == ""
+assert next(monthly_report_generator) == "- Книга: 10"
+assert next(monthly_report_generator) == "- Орешки: 5"
+assert next(monthly_report_generator) == ""
+
+
+"""
+STATUS: решение проверено публичными тестами
+
+Оценивание студентов
+Описание:
+Вам требуется реализовать функцию, подсчитывающую число неуспевающих по каждому предмету.
+
+Формат ввода:
+Две строки:
+Первая содержит предметы и проходные баллы в формате <предмет>:<балл>; ...
+Вторая — список студентов и их оценки в формате <студент>: <предмет> <балл>, ...
+
+Формат вывода:
+Число получивших неудовлетворительную оценку по каждому предмету студентов в формате
+<предмет>: <число студентов>; ...
+Если таких нет, вывести строку "Полная успеваемость".
+
+"""
+
+def get_results(subjects: str, students: str):
+    # Парсим предметы и проходные баллы
+    subjects_dict = {}
+    
+    # Обрабатываем оба возможных разделителя: ";" и ","
+    # Сначала пробуем разделить по точке с запятой, если не получается - по запятой
+    if ';' in subjects:
+        subjects_parts = subjects.split(';')
+    else:
+        subjects_parts = subjects.split(',')
+    
+    for part in subjects_parts:
+        part = part.strip()
+        if not part:
+            continue
+            
+        # Пробуем разные разделители для названия предмета и балла
+        if ':' in part:
+            subject, threshold = part.split(':', 1)
+        else:
+            # Разделяем по пробелу
+            subject_threshold = part.split()
+            if len(subject_threshold) >= 2:
+                subject = subject_threshold[0]
+                threshold = subject_threshold[1]
+            else:
+                continue
+                
+        subject = subject.strip()
+        threshold = threshold.strip()
+        # Убираем возможные запятые или другие символы из числа
+        threshold = ''.join(c for c in threshold if c.isdigit())
+        if threshold:  # проверяем, что строка не пустая
+            subjects_dict[subject] = int(threshold)
+
+    # Парсим студентов и их оценки
+    failing_students = {subject: 0 for subject in subjects_dict}
+    
+    # Аналогично для студентов: пробуем оба разделителя
+    if ';' in students:
+        students_parts = students.split(';')
+    else:
+        students_parts = students.split(',')
+    
+    for student_part in students_parts:
+        student_part = student_part.strip()
+        if not student_part:
+            continue
+            
+        # Разделяем имя студента и его оценки
+        if ':' in student_part:
+            student_name, grades_str = student_part.split(':', 1)
+        else:
+            continue
+            
+        grades_str = grades_str.strip()
+        # Разделяем оценки по запятым
+        grades_parts = grades_str.split(',')
+        
+        for grade_part in grades_parts:
+            grade_part = grade_part.strip()
+            if not grade_part:
+                continue
+                
+            # Разделяем предмет и оценку по пробелам
+            grade_info = grade_part.split()
+            if len(grade_info) >= 2:
+                subject = grade_info[0]
+                # Убираем нечисловые символы из оценки
+                score_str = ''.join(c for c in grade_info[1] if c.isdigit())
+                if score_str:  # проверяем, что строка не пустая
+                    score = int(score_str)
+                    
+                    # Проверяем, является ли оценка неудовлетворительной
+                    if subject in subjects_dict and score < subjects_dict[subject]:
+                        failing_students[subject] += 1
+
+    # Формируем результат
+    result_parts = []
+    for subject in subjects_dict:
+        count = failing_students[subject]
+        result_parts.append(f"{subject}: {count}")
+    
+    # Проверяем, есть ли неуспевающие
+    if all(count == 0 for count in failing_students.values()):
+        return "Полная успеваемость"
+    else:
+        return "; ".join(result_parts)
+
+
+# Чтение входных данных
+# subjects = input()    # закомментировал, чтоб не мешать тестам
+# students = input()
+
+# results = get_results(subjects, students)
+# print(results)
+
+assert get_results(
+    "Физкультура: 30; Музыка: 50; Искусство: 40",
+    "Дима: Физкультура 20, Музыка 60, Искусство 30; Лена: Физкультура 40, Музыка 50, Искусство 50"
+    ) == "Физкультура: 1; Музыка: 0; Искусство: 1"
+
+assert get_results(
+    "История 45, География 55, Биология 65",
+    "Смирнов: История 45, География 60, Биология 70; Кузнецов: История 50, География 58, Биология 65"
+    ) == "Полная успеваемость"
+
+
+"""
+STATUS: решение проверено публичными тестами
+
+Внутрисистемный доступ пользователей
+Описание:
+Реализуйте класс UserManager, который будет управлять доступом пользователей к системе.
+
+Формат ввода:
+Несколько строк, состоящих из команд add_user, remove_user, promote, demote, get_users. 
+Входные данные гарантированно завершаются командой get_users.
+
+Формат вывода:
+Несколько строк, в которой может быть один из вариантов:
+Пользователи с уровнем доступа или если список пуст — "Не найдено, если пользователей 
+в списке не осталось".
+"""
+class UserManager:
+    def __init__(self):
+        self.users = {}
+
+    def add_user(self, name, level):
+        """Добавляет пользователя с указанным уровнем доступа"""
+        self.users[name] = int(level)
+
+    def remove_user(self, name):
+        """Удаляет пользователя из системы"""
+        if name in self.users:
+            del self.users[name]
+
+    def promote(self, name):
+        """Повышает уровень доступа пользователя на 1"""
+        if name in self.users:
+            self.users[name] += 1
+
+    def demote(self, name):
+        """Понижает уровень доступа пользователя на 1 (но не ниже 1)"""
+        if name in self.users:
+            self.users[name] = max(1, self.users[name] - 1)
+
+    def get_users(self):
+        """Возвращает отсортированный список пользователей с их уровнями доступа"""
+        if not self.users:
+            return "не найдено"
+        
+        # Сортируем пользователей по имени
+        sorted_users = sorted(self.users.items(), key=lambda x: x[0])
+        result = []
+        for name, level in sorted_users:
+            result.append(f"{name}: {level}")
+        return "\n".join(result)
+
+
+# Основная программа
+user_manager = UserManager()
+input_lines = []
+
+# Чтение всех входных строк
+# while True:    # закомментировал, чтоб не мешать тестам
+#     try:
+#         line = input().strip()
+#         if line == "":
+#             break
+#         input_lines.append(line)
+#     except EOFError:
+#         break
+
+# Обработка команд
+for command_line in input_lines:
+    parts = command_line.split()
+    if not parts:
+        continue
+        
+    command = parts[0]
+    
+    if command == "add_user" and len(parts) == 3:
+        name = parts[1]
+        level = parts[2]
+        user_manager.add_user(name, level)
+        
+    elif command == "remove_user" and len(parts) == 2:
+        name = parts[1]
+        user_manager.remove_user(name)
+        
+    elif command == "promote" and len(parts) == 2:
+        name = parts[1]
+        user_manager.promote(name)
+        
+    elif command == "demote" and len(parts) == 2:
+        name = parts[1]
+        user_manager.demote(name)
+        
+    elif command == "get_users":
+        # Выводим результат и завершаем обработку
+        print(user_manager.get_users())
+        break
+
+"======================================TESTS======================================================="
+def test_user_manager():
+    # Тест 1: Пример из условия
+    manager1 = UserManager()
+    manager1.add_user("Анна", 1)
+    manager1.add_user("Борис", 2)
+    manager1.promote("Анна")
+    result1 = manager1.get_users()
+    expected1 = "Анна: 2\nБорис: 2"
+    assert result1 == expected1
+
+    manager2 = UserManager()
+    manager2.add_user("Bob", 3)
+    manager2.add_user("Charlie", 2)
+    manager2.remove_user("Bob")
+    manager2.remove_user("Charlie")
+    result2 = manager2.get_users()
+    expected2 = "не найдено"
+    assert result2 == expected2
+
+test_user_manager()
+"======================================END TESTS==================================================="
+
+"""
+STATUS: решение проверено публичными тестами
+
+Анализ текста
+Описание: В рамках работы над проектом по анализу текста на натуральном языке требуется 
+реализовать функцию, возвращающую манхэттенское расстояние между строками. Оно вычисляется 
+следующим образом:
+
+Общее расстояние равно сумме расстояний между буквами
+Расстояние между двумя буквами равно модулю разности их мест в алфавите
+Расстояние между буквой и любым другим символом (или отсутствием символа, если одна строка 
+короче другой) равно её месту в алфавите.
+Формат ввода: Две произвольных строки (от 3 до 250 символов, латинские буквы, пробелы и знаки 
+препинания)
+
+Формат вывода: Строка, содержащая число, являющееся вычисленным вышеописанным образом 
+манхэттенским расстоянием
+"""
+
+def manhattan_distance(string_one: str, string_two: str) -> str:
+    # Функция для получения позиции буквы в алфавите
+    def get_letter_position(char):
+        if char.isalpha():
+            # Для латинских букв: 'a' = 1, 'b' = 2, ..., 'z' = 26
+            return ord(char.lower()) - ord('a') + 1
+        return 0  # Для не-буквенных символов
+    
+    # Выравниваем длины строк, дополняя более короткую строку пустыми символами
+    max_len = max(len(string_one), len(string_two))
+    
+    total_distance = 0
+    
+    for i in range(max_len):
+        char1 = string_one[i] if i < len(string_one) else None
+        char2 = string_two[i] if i < len(string_two) else None
+        
+        if char1 is not None and char2 is not None:
+            # Оба символа существуют
+            if char1.isalpha() and char2.isalpha():
+                # Оба буквы - расстояние равно модулю разности их позиций
+                pos1 = get_letter_position(char1)
+                pos2 = get_letter_position(char2)
+                total_distance += abs(pos1 - pos2)
+            elif char1.isalpha():
+                # Только первый символ - буква
+                total_distance += get_letter_position(char1)
+            elif char2.isalpha():
+                # Только второй символ - буква
+                total_distance += get_letter_position(char2)
+            # Если оба не буквы - расстояние 0
+        elif char1 is not None and char1.isalpha():
+            # Есть только первый символ (и он буква)
+            total_distance += get_letter_position(char1)
+        elif char2 is not None and char2.isalpha():
+            # Есть только второй символ (и он буква)
+            total_distance += get_letter_position(char2)
+    
+    return str(total_distance)
+
+
+# Чтение входных данных и вывод результата
+# string_one = input()  # закомментировал, чтоб не мешать тестам
+# string_two = input()
+
+# distance = manhattan_distance(string_one, string_two)
+# print(distance)
+
+assert manhattan_distance("For whom the bell tolls?", "For you") == '170'
+assert manhattan_distance("Something", "Something") == '0' 
 
 print('ВСЕ ТЕСТЫ ПРОШЛИ УСПЕШНО!')
