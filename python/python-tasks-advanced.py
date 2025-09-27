@@ -184,7 +184,7 @@ def number_to_text(number: int) -> str:
         if units_digit == 0:
             return tens[tens_digit]
         else:
-            return f"{tens[tens_digit]} {units[units_digit]}"
+            return f"{tens[tens_digit-1]} {units[units_digit]}"  # TODO ТУПО КОНКАТЕНАЦИЯ!!!
 
 # number_input = input() # закомментировал, чтоб не мешать тестам
 # text = number_to_text(number_input)
@@ -742,7 +742,7 @@ def manhattan_distance(string_one: str, string_two: str) -> str:
 # distance = manhattan_distance(string_one, string_two)
 # print(distance)
 
-assert manhattan_distance("For whom the bell tolls?", "For you") == '170'
+assert manhattan_distance("For whom the bell tolls?", "For you") == '170' # TODO EXTEND TESTS!!!
 assert manhattan_distance("Something", "Something") == '0' 
 
 print('ВСЕ ТЕСТЫ ПРОШЛИ УСПЕШНО!')
