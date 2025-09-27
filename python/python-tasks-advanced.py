@@ -184,7 +184,7 @@ def number_to_text(number: int) -> str:
         if units_digit == 0:
             return tens[tens_digit]
         else:
-            return f"{tens[tens_digit-1]} {units[units_digit]}"  # TODO ТУПО КОНКАТЕНАЦИЯ!!!
+            return tens[tens_digit] + ' ' + units[units_digit] 
 
 # number_input = input() # закомментировал, чтоб не мешать тестам
 # text = number_to_text(number_input)
