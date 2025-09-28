@@ -1,4 +1,355 @@
 """
+STATUS: РЕШЕНИЕ ПРОВЕРЕНО НА НН
+Победители лотереи
+Вы работаете над программой для провеления лотерей. Чтобы победить в лотерее, 
+участник должен угадать загаданную проследовательность цифр. Те, кто угадал сами цифры, но расположил 
+их в неправильной последовательнсоти, тоже получают призы. Причем размер приза зависит от близости 
+последовательности к выигрышному значению. 
+Нужно написать программу которая находит следующее наиименьшее положительлное число с теми же цифрами  
+что в правильной последовательности, если такого числа нет или следующее наименьшее число с такими же цифрами 
+начинается с нуля вернуть -1
+
+Формат ввода: одна строка цифр
+
+Фформат вывода: одна строка в которой есть следующее меньшее число
+если не существует вернуть -1
+"""
+def next_smaller(n):
+    digits = list(str(n))
+    
+    # Находим индекс, где digit[i] > digit[i+1]
+    pivot = -1
+    for i in range(len(digits)-1, 0, -1):
+        if digits[i] < digits[i-1]:
+            pivot = i-1
+            break
+    
+    # Если такой точки нет, значит число уже наименьшее
+    if pivot == -1:
+        return -1
+    
+    # Находим наибольшую цифру справа от pivot, которая меньше digits[pivot]
+    swap_index = pivot + 1
+    for i in range(pivot + 1, len(digits)):
+        if digits[i] < digits[pivot] and digits[i] > digits[swap_index]:
+            swap_index = i
+    
+    # Меняем местами
+    digits[pivot], digits[swap_index] = digits[swap_index], digits[pivot]
+    
+    # Сортируем оставшуюся часть по убыванию (чтобы получить максимальное возможное число)
+    digits[pivot+1:] = sorted(digits[pivot+1:], reverse=True)
+    
+    # Проверяем, что число не начинается с 0
+    if digits[0] == '0':
+        return -1
+    
+    result = int(''.join(digits))
+    
+    # Проверяем, что результат действительно меньше исходного
+    return result if result < n else -1
+
+# Тестируем на примерах
+assert next_smaller(531) == 513
+assert next_smaller(101) == -1
+assert next_smaller(123) == -1
+assert next_smaller(153) == 135
+assert next_smaller(897) == 879
+
+
+"""
+STATUS: РЕШЕНИЕ ПРОВЕРЕНО НА НН
+
+Отчет о продажах за квартал
+
+Вы работаете над модулем CRM-системы, который помогает менеджерам готовить автоматизированные отчеты.
+Данные поступают в формате "Дата:Продукт:Количество;Дата:Продукт:Количество;...".
+Напишите программу, которая принимает информацию о продажах по датам и возвращает отчет о продажах за каждый квартал.
+
+Формат ввода
+Одна строка с данными в формате "Дата:Продукт:Количество;Дата:Продукт:Количество;..."
+Дата в формате YYYY-MM-DD, через двоеточие указано название продукта на русском языке и через еще одно двоеточие - 
+целое число, указывающее на количество проданных товаров. Данные по каждому продукту разделены точкой с запятой.
+
+Формат вывода
+Набор строк, в котором выводится информация о продажах товаров.
+Сначала дается номер квартала с двоеточием,а после - маркированный список с дефисом с названием товара и 
+количеством продаж через двоеточие. Кварталы идут по порядку, а товары внутри квартала сортируются по алфавиту
+
+
+Тесты 
+ввод "2023-01-15:Книга:10;2023-04-20:Флешка:5;2023-07-05:Наушники:8"
+вывод
+Q1:
+- Книга: 10
+Q2:
+- Флешка: 5
+Q3:
+- Наушники: 8
+
+ввод "2023-02-05:Шляпа:4;2023-03-20:Кольцо:7;2023-04-25:Браслет:6;2023-04-26:Браслет:12"
+вывод
+Q1:
+- Кольцо: 7
+- Шляпа: 4
+Q2:
+- Браслет: 18
+
+ввод "2023-03-05:Коврик:6;2023-04-25:Бинокль:10;2023-05-10:Компас:8;2023-03-05:Коврик:6;2023-04-25:Бинокль:10;2023-05-10:Компас:8"
+вывод
+Q1:
+- Коврик: 12
+Q2:
+- Бинокль: 20
+- Компас: 16
+
+ввод "2023-05-20:Шапка:7;2023-02-25:Краска:5;2023-05-05:Мяч:8"
+вывод
+Q1:
+- Краска: 5
+Q2:
+- Мяч: 8
+- Шапка: 7
+
+"""
+class Item:
+    def __init__(self, date, product, quantity):
+        self.date = date
+        self.product = product
+        self.quantity = quantity
+
+    @property
+    def quarter(self):
+        month = int(self.date.split('-')[1])
+        if 1 <= month <= 3:
+            return "Q1"
+        elif 4 <= month <= 6:
+            return "Q2"
+        elif 7 <= month <= 9:
+            return "Q3"
+        else:
+            return "Q4"
+        
+def generate_quartely_report(data):
+    # Разбиваем строку на отдельные записи
+    records = data.split(';')
+    
+    # Создаем словарь для хранения данных по кварталам
+    quarters = {}
+    
+    # Обрабатываем каждую запись
+    for record in records:
+        if record:  # Пропускаем пустые записи
+            date, product, quantity = record.split(':')
+            item = Item(date, product, int(quantity))
+            
+            # Добавляем в соответствующий квартал
+            if item.quarter not in quarters:
+                quarters[item.quarter] = {}
+            
+            # Суммируем количество для одинаковых продуктов
+            if product in quarters[item.quarter]:
+                quarters[item.quarter][product] += int(quantity)
+            else:
+                quarters[item.quarter][product] = int(quantity)
+    
+    # Сортируем кварталы по порядку
+    sorted_quarters = sorted(quarters.items())
+    
+    # Формируем вывод
+    result = []
+    for quarter, products in sorted_quarters:
+        result.append(f"{quarter}:")
+        
+        # Сортируем продукты по алфавиту
+        sorted_products = sorted(products.items())
+        for product, quantity in sorted_products:
+            result.append(f"- {product}: {quantity}")
+    
+    return '\n'.join(result)
+
+assert generate_quartely_report("2023-01-15:Книга:10;2023-04-20:Флешка:5;2023-07-05:Наушники:8") ==  """Q1:
+- Книга: 10
+Q2:
+- Флешка: 5
+Q3:
+- Наушники: 8"""
+
+assert generate_quartely_report("2023-02-05:Шляпа:4;2023-03-20:Кольцо:7;2023-04-25:Браслет:6;2023-04-26:Браслет:12") == """Q1:
+- Кольцо: 7
+- Шляпа: 4
+Q2:
+- Браслет: 18"""
+
+assert generate_quartely_report("2023-03-05:Коврик:6;2023-04-25:Бинокль:10;2023-05-10:Компас:8;2023-03-05:Коврик:6;2023-04-25:Бинокль:10;2023-05-10:Компас:8") == """Q1:
+- Коврик: 12
+Q2:
+- Бинокль: 20
+- Компас: 16"""
+
+assert generate_quartely_report("2023-05-20:Шапка:7;2023-02-25:Краска:5;2023-05-05:Мяч:8") == """Q1:
+- Краска: 5
+Q2:
+- Мяч: 8
+- Шапка: 7"""
+
+
+"""
+STATUS: РЕШЕНИЕ ПРОВЕРЕНО НА НН
+
+Без задолженностей
+Вы работаете над модулем «Электронная зачетка» в системе для администрирования учебного процесса 
+регионального вуза. Каждый студент может быть записан на несколько курсов, по каждому курсу у него есть итоговый балл.
+Необходимо написать программу для учебного офиса, которая будет выбирать из базы тех студентов, которые 
+не имеют ни одной академической задолженности. Студент без единой академической задолженности — студент, 
+набравший строго выше проходного балла по всем курсам. Проходной балл определяется для каждого курса отдельно.
+
+Формат ввода
+Первая строка содержит информацию о студентах, курсах и их оценках в формате: 
+"имя_студента,курс,оценка;имя_студента,курс,оценка;...". В строке есть информация хотя бы об одном студенте. 
+Вторая строка содержит проходные баллы по предметам в формате: "курс,проходной_балл;курс,проходной_балл;...". Гарантируется, что на все указанные в первой строке курсы есть проходной балл.
+Все баллы являются целыми положительными числами, а все имена студентов уникальны.
+
+Формат вывода
+Имена студентов без академической задолженности, каждое имя с новой строки. Если таких студентов нет, выводится слово «Пусто» (без кавычек).
+Пример 1
+Входные данные:
+Анна,Математика,85;Анна,Химия,90;Борис,Математика,75;Борис,История,80;Евгений,Математика,95;Евгений,История,85
+Математика,80;Химия,60;История,80
+Выходные данные:
+Анна
+Евгений
+
+Пример 2
+Входные данные:
+Анна,Психология,8;Анна,Литература,9;Борис,Обществознание,8
+Психология,8;Литература,6;Обществознание,8
+Выходные данные:
+Пусто
+
+"""
+class Student:
+    def __init__(self, name):
+        self.name = name
+        self.courses = {}  # словарь: курс -> оценка
+    
+    def add_course(self, course, score):
+        """Добавляет курс и оценку студента"""
+        self.courses[course] = score
+    
+    def has_no_debt(self, passing_scores):
+        """Проверяет, что у студента нет задолженностей"""
+        for course, score in self.courses.items():
+            if score <= passing_scores[course]:
+                return False
+        return True
+
+
+class CourseManager: 
+    def __init__(self): 
+        self.students = {}  # словарь: имя -> объект Student
+    
+    def add_student_record(self, name, course, score):
+        """Добавляет запись о студенте и его оценке"""
+        if name not in self.students:
+            self.students[name] = Student(name)
+        self.students[name].add_course(course, score)
+    
+    def get_students_without_debt(self, passing_scores):
+        """Возвращает список студентов без задолженностей"""
+        result = []
+        for student in self.students.values():
+            if student.has_no_debt(passing_scores):
+                result.append(student.name)
+        return result
+
+
+# Основная программа           # ЧАСТЬ РЕШЕНИЯ!!!!!
+# students_info = input()
+# scores_info = input()
+
+# # Создаем менеджер курсов
+# manager = CourseManager()
+
+# # Обрабатываем информацию о студентах
+# for record in students_info.split(';'):
+#     if record:  # проверяем, что запись не пустая
+#         name, course, score = record.split(',')
+#         manager.add_student_record(name, course, int(score))
+
+# # Обрабатываем проходные баллы
+# passing_scores = {}
+# for score_record in scores_info.split(';'):
+#     if score_record:  # проверяем, что запись не пустая
+#         course, passing_score = score_record.split(',')
+#         passing_scores[course] = int(passing_score)
+
+# # Получаем студентов без задолженностей
+# successful_students = manager.get_students_without_debt(passing_scores)
+
+# # Выводим результат
+# if successful_students:
+#     for student in sorted(successful_students):  # сортируем по алфавиту
+#         print(student)
+# else:
+#     print("Пусто")             # КОНЕЦ РЕШЕНИЯ
+
+"========================================ТЕСТЫ============================================================="
+"тест 1"
+
+students_info = "Анна,Математика,85;Анна,Химия,90;Борис,Математика,75;Борис,История,80;Евгений,Математика,95;Евгений,История,85"
+scores_info = "Математика,80;Химия,60;История,80"
+
+# Создаем менеджер курсов
+manager = CourseManager()
+
+# Обрабатываем информацию о студентах
+for record in students_info.split(';'):
+    if record:  # проверяем, что запись не пустая
+        name, course, score = record.split(',')
+        manager.add_student_record(name, course, int(score))
+
+# Обрабатываем проходные баллы
+passing_scores = {}
+for score_record in scores_info.split(';'):
+    if score_record:  # проверяем, что запись не пустая
+        course, passing_score = score_record.split(',')
+        passing_scores[course] = int(passing_score)
+
+# Получаем студентов без задолженностей
+successful_students = manager.get_students_without_debt(passing_scores)
+
+assert successful_students == ["Анна", "Евгений"]
+
+"тест2"
+
+students_info = "Анна,Психология,8;Анна,Литература,9;Борис,Обществознание,8"
+scores_info = "Психология,8;Литература,6;Обществознание,8"
+
+# Создаем менеджер курсов
+manager = CourseManager()
+
+# Обрабатываем информацию о студентах
+for record in students_info.split(';'):
+    if record:  # проверяем, что запись не пустая
+        name, course, score = record.split(',')
+        manager.add_student_record(name, course, int(score))
+
+# Обрабатываем проходные баллы
+passing_scores = {}
+for score_record in scores_info.split(';'):
+    if score_record:  # проверяем, что запись не пустая
+        course, passing_score = score_record.split(',')
+        passing_scores[course] = int(passing_score)
+
+# Получаем студентов без задолженностей
+successful_students = manager.get_students_without_debt(passing_scores)
+
+assert successful_students == []
+
+"========================================КОНЕЦ ТЕСТОВ============================================================="
+
+"""
 STATUS: решение проверено публичными тестами
 
 Размер выигрыша в лотерее
@@ -142,7 +493,7 @@ assert alien_translator('bbbaaa! aaab! aaaa! bbb!') == 'счёт 0: нападе
 assert alien_translator('aaabbb?!!!??? bbba! ba') == 'счёт -1: нападение неизбежно'
 
 """
-STATUS: решение проверено публичными тестами
+STATUS: РЕШЕНИЕ ПРОВЕРЕНО НА НН
 
 Прочтение числа
 Описание:
@@ -676,7 +1027,7 @@ test_user_manager()
 "======================================END TESTS==================================================="
 
 """
-STATUS: решение проверено публичными тестами
+STATUS: РЕШЕНИЕ ПРОВЕРЕНО НА НН
 
 Анализ текста
 Описание: В рамках работы над проектом по анализу текста на натуральном языке требуется 
@@ -742,7 +1093,11 @@ def manhattan_distance(string_one: str, string_two: str) -> str:
 # distance = manhattan_distance(string_one, string_two)
 # print(distance)
 
-assert manhattan_distance("For whom the bell tolls?", "For you") == '170' # TODO EXTEND TESTS!!!
+assert manhattan_distance("For whom the bell tolls?", "For you") == '170'
 assert manhattan_distance("Something", "Something") == '0' 
+assert manhattan_distance("data science", "data science") == '0' 
+assert manhattan_distance("machine learning", "machine learning") == '0' 
+assert manhattan_distance("deep learning", "learning") == '108' 
+assert manhattan_distance("data analysis", "data") == '100' 
 
 print('ВСЕ ТЕСТЫ ПРОШЛИ УСПЕШНО!')
