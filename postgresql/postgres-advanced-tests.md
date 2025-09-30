@@ -115,3 +115,125 @@ CREATE INDEX logs_event_index ON logs(event_time);
 CREATE INDEX logs_event_user_index ON logs(event_time, user_id);
 CREATE INDEX logs_user_event_hash ON logs USING hash(user_id, event_time);
 CREATE INDEX logs_user_index ON logs(user_id);
+
+
+**Существует таблица some_table.**
+
+class	value
+1	10
+1	20
+1	100
+2	200
+Запускаются две транзакции Т1 и Т2. Какой вид изолированности транзакции НЕ позволит исполнить commit?
+
+1 -- T1
+2 SELECT SUM(value) FROM mytab WHERE class = 1;
+3 INSERT INTO some_table(class, value) VALUES (2, 30);
+4 COMMIT;
+5 -- T2
+6 SELECT SUM(value) FROM mytab WHERE class = 2;
+7 INSERT INTO some_table(class, value) VALUES (1, 300);
+8 COMMIT;
+
+read committed
+V **serializable**
+repeatable read
+read uncommitted
+snapshot
+
+
+**В PostgreSQL вы создаёте индекс в транзакции над таблицей users. Во время выполнения этой транзакции другая транзакция пытается выполнить одну из следующих команд над той же таблицей. Какая команда выполнится без конфликтов?**
+
+1 -- Первая транзакция
+2 BEGIN;
+3 CREATE INDEX idx_users_name ON users(name);
+4 -- Вторая транзакция
+5 <выбранная команда>;
+
+VACUUM users;
+SELECT * FROM users WHERE id = 1000 FOR UPDATE;
+CREATE INDEX CONCURRENTLY idx_users_email ON users(email);
+V **SELECT * FROM users;**
+INSERT INTO users (name) VALUES ('Alice');
+
+
+Какие утверждения о следующем запросе правдивы?
+
+**1 CREATE MATERIALIZED VIEW some_view AS SELECT * FROM some_table ORDER BY id DESC WITH NO DATA;**
+
+Возможна операция вставки в представление some_view
+Чтение возможно сразу после создания представления some_view
+V **Возможна операция REFRESH MATERIALIZED VIEW CONCURRENTLY some_view**
+V **Так как использовалось выражение SELECT *, при модификации таблицы some_table изменятся и колонки в представлении some_view**
+V **Для представления some_view можно создать индекс**
+
+
+**У вас есть рабочая база данных с высокой нагрузкой и её копия. Вы хотите проанализировать производительность запроса, чтобы исключить влияние нагрузки на результаты анализа.**
+**Какую команду следует использовать для тестирования на копии базы данных?**
+
+Выполнить запрос несколько раз и взять среднее время выполнения.
+pgbench для эмуляции нагрузки и затем использовать explain analyze
+explain
+V **explain analyze**
+explain (analyze, buffers)
+
+
+**В таблице orders содержится 1 миллион записей. На колонке customer_id есть индекс B-Tree. Вы выполняете следующий запрос с фильтрацией по customer_id и выбираете 90 % строк. Какой тип сканирования таблицы будет использован планировщиком PostgreSQL?**
+
+1 CREATE TABLE orders (
+2 order_id SERIAL PRIMARY KEY,
+3 customer_id INTEGER NOT NULL,
+4 order_date DATE,
+5 total_amount NUMERIC
+6 );
+7 -- Индекс
+8 CREATE INDEX idx_orders_customer_id ON orders (customer_id);
+9 -- запрос
+10 EXPLAIN SELECT * FROM orders WHERE customer_id < 900000;
+
+V **seq scan**
+index only scan
+bitmap heap scan
+bitmap index scan
+index scan
+
+
+**Существует таблица, представленная на изображении. В эту таблицу сохраняются данные, журналирующие некоторые действия. После очередного релиза частота вставки записей, где action = 'login', возросла в десять раз. Оперативно релиз починить не удается, но есть доступ к базе данных. Было решено временно не вставлять данные, где action = 'login', сохранив уже существующие записи.**
+
+Как этого достичь?
+
+1 CREATE TABLE action_log (
+2 id SERIAL,
+3 action VARCHAR,
+4 description TEXT
+5 );
+
+Создать instead of trigger, запрещающий 'login'
+Создать after insert trigger, удаляющий вставленную строку
+Создать constraint на колонку action, запрещающий 'login'
+Создать представление с условием: where action != 'login'
+V **Создать before insert trigger, запрещающий 'login'**
+
+
+**В PostgreSQL пользователь manuel должен получить полный доступ к таблице kinds.**
+
+**Следующая команда выполнена другим пользователем. Какой будет результат выполнения команды, если исполняющий пользователь не является суперпользователем и не является владельцем таблицы?**
+
+1 GRANT ALL PRIVILEGES ON kinds TO manuel;
+
+manuel получит полный доступ к таблице kinds, включая возможность передавать права другим пользователям
+V **Команда завершится ошибкой, так как исполнитель команды не является владельцем таблицы**
+manuel получит все права, которые есть у исполнителя команды на таблицу kinds
+Права на таблицу kinds будут изменены только для схемы, в которой она находится, но manuel доступ не получит
+manuel получит доступ только на чтение таблицы kinds, если исполнитель команды обладает таким правом
+
+
+**По мере продвижения бизнеса росло количество запросов к базе данных, а именно возросло в несколько раз количество запросов на запись при том же уровне запросов на чтение и повысилось требование к отказоустойчивости.**
+
+**Какими методиками можно воспользоваться для поддержания работоспособности сервиса с учетом того, что запросов по ключу большинство?**
+
+Репликация вместе с вертикальным шардированием
+**Репликация вместе с горизонтальным шардированием**
+Репликация
+Вертикальное шардирование
+Горизонтальное шардирование
