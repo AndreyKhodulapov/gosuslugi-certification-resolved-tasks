@@ -1,5 +1,149 @@
 4.10 2025 HIT RATE = 20% SCORE = 11 из 15
 
+**Какой из операторов создаёт таблицу в SQL?**
+
+V **create table users (...)**
+
+select into table users
+
+insert into users values (...)
+
+alter users create table
+
+rename users to users_backup
+
+
+**Какая особенность отличает EXCEPT от UNION?**
+
+UNION всегда удаляет NULL
+
+UNION работает только с числовыми значениями
+
+EXCEPT сортирует результат
+
+EXCEPT возвращает все строки из обоих запросов
+
+V **EXCEPT возвращает строки, уникальные только для первого набора**
+
+
+**Как выдать пользователю reader только права на чтение таблицы invoices?**
+
+REVOKE ALL ON invoices FROM reader
+
+GRANT EXECUTE ON invoices TO reader
+
+V **GRANT SELECT ON invoices TO reader**
+
+GRANT INSERT, DELETE ON invoices TO reader
+
+GRANT UPDATE ON invoices TO reader
+
+
+**Как можно ускорить отчёт, построенный на ресурсоёмком SQL-запросе к таблице logs, не изменяя сам запрос и его логику?**
+
+Удалить неиспользуемые поля из таблицы
+
+Заменить JOIN на агрегатные функции
+
+Использовать кэш на клиентской стороне
+
+V **Сохранить результат запроса в отдельную таблицу и переиспользовать при построении отчёта**
+
+Разбить таблицу logs на подтаблицы по месяцам
+
+
+**Как добавить сразу две колонки в таблицу clients: одну строковую, другую числовую?**
+
+alter table clients modify (note varchar, score int)
+
+alter table clients add column (note varchar, score int)
+
+V **alter table clients add column note varchar, add column score int**
+
+add columns note, score into clients
+
+alter table clients add note varchar, score int
+
+**Есть таблица с информацией о транзакциях:**
+
+На мобильной платформе присутствует горизонтальный скролл таблицы
+
+transactions	
+Наименование колонки	Тип данных	Описание
+transaction_id	str	id транзакции
+user_id	str	id юзера
+amount	varchar	сумма транзакции
+transaction_date	varchar	дата транзакции
+status	varchar	статус
+
+В данных есть особенность: в поле amount могут находиться целые и дробные данные с указанием валюты, например 1.43 EUR, 250, 37.18, 893 RUB.
+
+Также есть SQL-запрос, который написан аналитиком и рассчитывает сумму одобренных транзакций по месяцам 2023 года.
+
+Запрос:
+
+На мобильной платформе присутствует горизонтальный скролл кода
+
+select
+to_char(transaction_date::date, 'YYYY-MM') as month,
+sum(cast(regexp_replace(amount, '[^0-9.]', '', 'g') as numeric)) as total_approved_amount
+from transactions
+where
+status = 'approved'
+and date_trunc('YEAR', transaction_date::date) = '2023'
+group by month
+order by month
+
+Выберите вариант, где для каждого запроса указана ошибка, из-за которой запрос либо не сработает, либо вернет неверные значения:
+
+
+to_char(transaction_date, 'YYYY-MM') не поддерживает преобразование дат, а sum(...) не суммирует значения типа numeric
+
+date_trunc не работает с датами в формате YYYY, а regexp_replace удаляет только буквы, но не лишние символы
+
+cast(regexp_replace(...)) as numeric нельзя применять в агрегатных функциях, а date_trunc('YEAR', transaction_date::date) = '2023' не фильтрует по году
+
+V **regexp_replace возвращает некорректное значение для CAST, а date_trunc('YEAR', transaction_date::date) = '2023' записано с ошибкой**
+
+regexp_replace искажает числовые значения, а group by month некорректно сгруппирует данные
+
+**В таблице products поле sku содержит коды вида "PRD-001-ABC". Какой вариант гарантированно извлечёт числовую часть 001 в любой СУБД, поддерживающей стандарт ANSI SQL?**
+
+
+V **select substr(sku, 4, 3) from products**
+
+select split_part(sku, '-', 2) from products
+
+select regexp_replace(sku, '[^0-9]', '', 'g') from products
+
+select regexp_substr(sku, '[0-9]') from products
+
+select substring(sku, 5, 3) from products
+
+**Как обновить материальное представление, чтобы оно учитывало только данные за последние 3 месяца?**
+
+Обновить материализованное представление через UPDATE
+
+V **Удалить представление и создать его заново с фильтром WHERE dt > current_date - interval '3 months'**
+
+Применить WHERE dt > now() к уже существующему представлению
+
+Использовать ALTER MATERIALIZED VIEW с добавлением условия
+
+Выполнить REFRESH MATERIALIZED VIEW с фильтром
+
+**Какой из следующих подзапросов корректен при сравнении с агрегатом?**
+
+select avg(salary) > salary from employees
+
+salary in (select avg(salary), count(*) from employees)
+
+V **salary > (select avg(salary) from employees)**
+
+salary = (select department, avg(salary) from employees group by department)
+
+select * from (select * from employees) > salary
+
 **Что произойдет, если при использовании GROUP BY указаны колонки, но не указаны агрегирующие функции?**
 
 запрос вернет уникальные значения по всем колонкам, которые прописаны в GROUP BY, а остальные колонки проигнорирует
