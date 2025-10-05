@@ -189,20 +189,25 @@ FROM december_users d
 LEFT JOIN bot_users b ON d.user_id = b.user_id;
 
 **AЛЬТЕРНАТИВНОЕ РЕШЕНИЕ С ОКОННОЙ ФУНКЦИЕЙ**
-WITH bot_identification AS (
+WITH bot_flags AS (
     SELECT 
         user_id,
-        MAX(CASE WHEN url LIKE '%type=bot%' OR url LIKE '%type=_%' THEN 1 ELSE 0 END) as is_bot
+        MAX(CASE WHEN url LIKE '%type=bot%' OR url LIKE '%type=_%' THEN 1 ELSE 0 END) AS is_bot
+    FROM events
+    GROUP BY user_id
+),
+december_users AS (
+    SELECT DISTINCT user_id
     FROM events
     WHERE EXTRACT(MONTH FROM event_date) = 12
-    GROUP BY user_id
 )
 SELECT 
     ROUND(
-        SUM(is_bot) * 100.0 / COUNT(*),
+        SUM(b.is_bot) * 100.0 / COUNT(*),
         1
-    ) as share
-FROM bot_identification;
+    ) AS share
+FROM december_users d
+JOIN bot_flags b ON d.user_id = b.user_id;
 
 Проверка на тестовых данных:
 На предоставленных данных:
@@ -667,165 +672,39 @@ INSERT INTO sunflowers_control (sunflower_id, seeds_weight) VALUES
 (99, 348);
 
 **РЕШЕНИЕ**
-Анализ эффекта удобрений
-Описание:
-В рамках эксперимента ростом подсолнечника обрабатывали инновационными видами удобрений. Для оценки эффективности на соседнем поле высадили тот же сорт подсолнечника, только его обрабатывали обычным удобрением. Во время сбора урожая с каждого поля собрали по 500 подсолнечников и посчитали суммарный вес всех семян с каждого подсолнечника.
 
-Рассчитайте t-критерий Стьюдента для каждого из типов удобрений и дайте ответ на вопрос, имеются ли статистически значимые отличия между группами А и В.
+WITH stats_control AS (
+    SELECT 
+        AVG(seeds_weight) AS avg_control,
+        STDDEV_POP(seeds_weight) AS std_control,
+        COUNT(*) AS n_control
+    FROM sunflowers_control
+),
+stats_test AS (
+    SELECT 1 AS type, AVG(seeds_weight) AS avg_test, STDDEV_POP(seeds_weight) AS std_test, COUNT(*) AS n_test FROM sunflowers_test1
+    UNION ALL
+    SELECT 2 AS type, AVG(seeds_weight), STDDEV_POP(seeds_weight), COUNT(*) FROM sunflowers_test2
+    UNION ALL
+    SELECT 3 AS type, AVG(seeds_weight), STDDEV_POP(seeds_weight), COUNT(*) FROM sunflowers_test3
+)
+SELECT 
+    t.type,
+    ROUND(
+        (t.avg_test - c.avg_control) /
+        SQRT(POWER(t.std_test, 2)/t.n_test + POWER(c.std_control, 2)/c.n_control)
+    , 2) AS t_crit,
+    ROUND(t.avg_test - c.avg_control, 2) AS diff,
+    CASE 
+        WHEN ABS(
+            (t.avg_test - c.avg_control) /
+            SQRT(POWER(t.std_test, 2)/t.n_test + POWER(c.std_control, 2)/c.n_control)
+        ) > 2 THEN 'yes'
+        ELSE 'no'
+    END AS result
+FROM stats_test t
+CROSS JOIN stats_control c
+ORDER BY t.type;
 
-Формат ввода:
-Таблица sunflowers_control:
-
-sunflower_id (int) — уникальный идентификатор растения
-seeds_weight (int) — вес семян растения в граммах
-Таблица sunflowers_test1:
-
-sunflower_id (int) — уникальный идентификатор растения
-seeds_weight (int) — вес семян растения в граммах
-Таблица sunflowers_test2:
-
-sunflower_id (int) — уникальный идентификатор растения
-seeds_weight (int) — вес семян растения в граммах
-Таблица sunflowers_test3:
-
-sunflower_id (int) — уникальный идентификатор растения
-seeds_weight (int) — вес семян растения в граммах
-Данные не содержат пропусков или некорректных значений.
-
-Формат вывода:
-Запрос должен вернуть таблицу с полями в таком порядке:
-
-type (int) — тип удобрения
-t_crit (float) — значение t-критерия, округленное до 2 знаков после запятой
-diff (float) — разница средних весов тестовой и контрольной группы, округленная до 2 знаков после запятой
-result (string) — флаг статистической значимости изменения
-Таблица должна быть отсортирована по колонке type по возрастанию.
-
-Код:
-
-CREATE TABLE sunflowers_control (
-sunflower_id  INT NOT NULL,
-seeds_weight  INT NOT NULL
-);
-CREATE TABLE sunflowers_test1 (
-sunflower_id  INT NOT NULL,
-seeds_weight  INT NOT NULL
-);
-CREATE TABLE sunflowers_test2 (
-sunflower_id  INT NOT NULL,
-seeds_weight  INT NOT NULL
-);
-CREATE TABLE sunflowers_test3 (
-sunflower_id  INT NOT NULL,
-seeds_weight  INT NOT NULL
-);
-
-INSERT INTO sunflowers_test1 (sunflower_id, seeds_weight) VALUES 
-(1, 348),
-(2, 279),
-(3, 289),
-(4, 262),
-(5, 315),
-(6, 318),
-(7, 336),
-(8, 282),
-(9, 272),
-(10, 290),
-(11, 328),
-(12, 330),
-(13, 334),
-(14, 354),
-(15, 295),
-(16, 353),
-(17, 315),
-(18, 317),
-(19, 338),
-(20, 262),
-(21, 291),
-(22, 273),
-(23, 293),
-(24, 353),
-(25, 307);
-
-INSERT INTO sunflowers_test2 (sunflower_id, seeds_weight) VALUES 
-(26, 339),
-(27, 286),
-(28, 310),
-(29, 295),
-(30, 268),
-(31, 342),
-(32, 331),
-(33, 289),
-(34, 346),
-(35, 251),
-(36, 352),
-(37, 267),
-(38, 273),
-(39, 265),
-(40, 310),
-(41, 258),
-(42, 296),
-(43, 343),
-(44, 284),
-(45, 309),
-(46, 263),
-(47, 319),
-(48, 280),
-(49, 305),
-(50, 281);
-
-INSERT INTO sunflowers_test3 (sunflower_id, seeds_weight) VALUES 
-(51, 302),
-(52, 251),
-(53, 322),
-(54, 321),
-(55, 304),
-(56, 320),
-(57, 335),
-(58, 304),
-(59, 296),
-(60, 254),
-(61, 298),
-(62, 266),
-(63, 313),
-(64, 307),
-(65, 259),
-(66, 294),
-(67, 335),
-(68, 298),
-(69, 266),
-(70, 261),
-(71, 334),
-(72, 280),
-(73, 289),
-(74, 301),
-(75, 297);
-
-INSERT INTO sunflowers_control (sunflower_id, seeds_weight) VALUES 
-(76, 297),
-(77, 328),
-(78, 350),
-(79, 322),
-(80, 252),
-(81, 319),
-(82, 266),
-(83, 301),
-(84, 313),
-(85, 273),
-(86, 288),
-(87, 346),
-(88, 340),
-(89, 315),
-(90, 344),
-(91, 336),
-(92, 250),
-(93, 304),
-(94, 318),
-(95, 280),
-(96, 304),
-(97, 256),
-(98, 261),
-(99, 348);
 
 Ожидаемый результат:
 type | t_crit | diff  | result
