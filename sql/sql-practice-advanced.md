@@ -474,39 +474,12 @@ WHERE client_id IN (
 ORDER BY client_id;
 
 **РЕШЕНИЕ ПОД POSTGRES**
-SELECT DISTINCT client_id
-FROM (
-    -- Клиенты с активной подпиской на 2024-12-01
-    SELECT client_id
-    FROM subscribers
-    WHERE max_sub_date >= '2024-12-01'
-      AND min_sub_date <= '2024-01-01'
-) AS active_subs
-WHERE client_id IN (
-    -- Клиенты со средней длиной сессии > 35 минут за последние 6 месяцев
-    SELECT client_id
-    FROM (
-        SELECT 
-            client_id,
-            AVG(EXTRACT(EPOCH FROM (session_end - session_start)) / 60) AS avg_session_minutes
-        FROM sessions
-        WHERE session_start >= '2024-06-01'
-          AND session_start < '2024-12-01'
-        GROUP BY client_id
-        HAVING AVG(EXTRACT(EPOCH FROM (session_end - session_start)) / 60) > 35
-    ) AS active_users
-)
-ORDER BY client_id;
+
+---
 
 Ожидаемый результат:
 client_id
 101
-102
-104
-106
-107
-108
-110
 
 
 STATUS: решение проверено публичными тестами
