@@ -1,3 +1,202 @@
+4.10 2025 HIT RATE = 20%; SCORE = тест не засчитан за использование нейронки;
+
+STATUS: решение проверено публичными тестами
+**Анализ бонусов сотрудников**
+
+Сложный Оконные функции Вывод данных Группировка Агрегатные функции Математические операции Вы работаете аналитиком в HR-отделе крупной компании. У вас есть две таблицы: • employees — данные о сотрудниках; • bonuses — информация о бонусах, выплаченных сотрудникам. Сформируйте отчет по бонусам, в который войдут только те сотрудники, чья последняя выплата бонуса была выше медианного бонуса по их отделу. Для каждого такого сотрудника и их последнего бонуса укажите: • bonus_date — дата последней выплаты; • bonus_amount — сумма последней выплаты; • department_median_bonus — медианный бонус по отделу; • rank_in_department — место бонуса сотрудника по величине в отделе (1 — самый большой бонус). Ранг — число, которое присваивается каждой строке в результирующем наборе на основе заданного порядка данных. Если две или более строк имеют одинаковое значение, им присваивается одинаковый ранг, но следующий ранг пропускается. Итоговый отчет должен быть отсортирован сначала по названию отдела в алфавитном порядке, затем по рангу бонуса и id сотрудника в возрастающем порядке. Формат ввода Таблица employees: • employee_id (int) — уникальный идентификатор сотрудника • employee_name (text) — имя сотрудника • department (text) — название отдела Таблица bonuses: • bonus_id (int) — уникальный идентификатор бонуса • employee_id (int) — идентификатор сотрудника, получившего бонус • bonus_date (timestamp) — дата и время начисления бонуса • bonus_amount (numeric) — сумма бонуса в рублях Данные не содержат пропусков или некорректных значений. Формат вывода Запрос должен вернуть таблицу с полями в таком порядке: • employee_id (int) — уникальный идентификатор сотрудника • employee_name (text) — имя сотрудника • department (text) — название отдела • bonus_date (timestamp) — дата и время начисления бонуса • bonus_amount (numeric) — сумма текущего бонуса в рублях • department_median_bonus (numeric) — медианный бонус по отделу сотрудника • rank_in_department (int) — место бонуса сотрудника по величине в отделе (1 — самый большой бонус) схемы CREATE TABLE employees ( employee_id INT PRIMARY KEY, employee_name TEXT NOT NULL, department TEXT NOT NULL ); CREATE TABLE bonuses ( bonus_id INT PRIMARY KEY, employee_id INT NOT NULL REFERENCES employees(employee_id), bonus_date TIMESTAMP NOT NULL, bonus_amount NUMERIC(10,2) NOT NULL ); INSERT INTO employees (employee_id, employee_name, department) VALUES (1, 'Иванов И.И.', 'Sales'), (2, 'Петров П.П.', 'Sales'), (3, 'Смирнов С.С.', 'Marketing'), (4, 'Кузнецова А.А.', 'Marketing'), (5, 'Николаев Н.Н.', 'Marketing'); INSERT INTO bonuses (bonus_id, employee_id, bonus_date, bonus_amount) VALUES (101, 1, '2025-04-01 10:00:00', 1000.00), (102, 1, '2025-05-01 10:00:00', 1500.00), (103, 2, '2025-05-01 11:00:00', 1200.00), (104, 3, '2025-03-15 09:30:00', 2000.00), (105, 3, '2025-05-05 10:15:00', 2200.00), (106, 4, '2025-05-01 09:00:00', 1800.00), (107, 5, '2025-05-03 09:45:00', 1100.00); сами таблицы employees employee_id employee_name department employee_id employee_name department 1 Иванов И.И. Sales 2 Петров П.П. Sales 3 Смирнов С.С. Marketing 4 Кузнецова А.А. Marketing 5 Николаев Н.Н. Marketing bonuses bonus_id employee_id bonus_date bonus_amount bonus_id employee_id bonus_date bonus_amount 101 1 2025-04-01 10:00:00 1000.00 102 1 2025-05-01 10:00:00 1500.00 103 2 2025-05-01 11:00:00 1200.00 104 3 2025-03-15 09:30:00 2000.00 105 3 2025-05-05 10:15:00 2200.00 106 4 2025-05-01 09:00:00 1800.00 107 5 2025-05-03 09:45:00 1100.00 
+
+результыт 
+Ожидаемый результат employee_id employee_name department bonus_date bonus_amount department_median_bonus rank_in_department employee_id employee_name department bonus_date bonus_amount department_median_bonus rank_in_department 
+3 Смирнов С.С. Marketing 2025-05-05 10:15:00 2200.00 1800.0 1 
+1 Иванов И.И. Sales 2025-05-01 10:00:00 1500.00 1350.0 1
+
+**РЕШЕНИЕ**
+WITH last_bonus AS (
+    SELECT 
+        b.employee_id,
+        b.bonus_date,
+        b.bonus_amount,
+        ROW_NUMBER() OVER (PARTITION BY b.employee_id ORDER BY b.bonus_date DESC) AS rn
+    FROM bonuses b
+),
+last_bonus_per_employee AS (
+    SELECT *
+    FROM last_bonus
+    WHERE rn = 1
+),
+median_per_department AS (
+    SELECT 
+        e.department,
+        ROUND(PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY lb.bonus_amount)::numeric, 1) AS department_median_bonus
+    FROM last_bonus_per_employee lb
+    JOIN employees e ON lb.employee_id = e.employee_id
+    GROUP BY e.department
+),
+ranked AS (
+    SELECT
+        e.employee_id,
+        e.employee_name,
+        e.department,
+        lb.bonus_date,
+        lb.bonus_amount,
+        m.department_median_bonus,
+        RANK() OVER (PARTITION BY e.department ORDER BY lb.bonus_amount DESC) AS rank_in_department
+    FROM last_bonus_per_employee lb
+    JOIN employees e ON lb.employee_id = e.employee_id
+    JOIN median_per_department m ON e.department = m.department
+)
+SELECT *
+FROM ranked
+WHERE bonus_amount > department_median_bonus
+ORDER BY department, rank_in_department, employee_id;
+
+
+
+STATUS: РЕШЕНИЕ ПРОВЕРЕНО НА НН
+
+**Анализ продаж по категориям товаров в розничном магазине** 
+Сложный Математические операции Вывод данных Группировка Агрегатные функции Вы работаете аналитиком в розничном магазине. Ваша задача — сформировать отчет о продажах по категориям товаров с расчетами: • общее количество проданных единиц в категории (total_units_sold); • суммарная выручка по категории, учитывая скидки, где скидка применяется как unit_price × units_sold × (1 − discount/100). Если скидка отсутствует (NULL), считать скидку равной 0%. Округлить до двух знаков после запятой: если число является целым (например, 4) или имеет один знак после запятой (например, 4.1), то при округлении необходимо добавить нули до двух знаков после запятой (в примерах: 4.00 и 4.10); • среднюю цену за единицу с учетом скидки по категории, округленную до двух знаков после запятой (avg_price_after_discount) (если число является целым (например, 4) или имеет один знак после запятой (например, 4.1), то при округлении необходимо добавить нули до двух знаков после запятой (в примерах: 4.00 и 4.10)); • коэффициент вариации цены с учетом скидки по категории — отношение стандартного отклонения к среднему, округленное до трех знаков после запятой (price_variation_coefficient) (если число является целым (например, 4) или имеет один или два знака после запятой (например, 4.1 или 4.15), то при округлении необходимо добавить нули до трёх знаков после запятой (в примерах: 4.000, 4.100, 4.150)); • среднее количество проданных единиц на одну продажу (avg_units_per_sale), округленное до двух знаков после запятой (avg_price_after_discount) (если число является целым (например, 4) или имеет один знак после запятой (например, 4.1), то при округлении необходимо добавить нули до двух знаков после запятой (в примерах: 4.00 и 4.10)); • долю продаж без скидки (no_discount_share) — количество продаж с NULL или 0% скидкой, деленное на общее количество продаж в категории, округленную до трех знаков после запятой (если число является целым (например, 4) или имеет один или два знака после запятой (например, 4.1 или 4.15), то при округлении необходимо добавить нули до трёх знаков после запятой (в примерах: 4.000, 4.100, 4.150)). Результат отсортируйте по следующему правилу: 1. Сначала отсортируйте по убыванию total_revenue. 2. При равенстве total_revenue — сначала выведите категории с коэффициентом вариации цены (price_variation_coefficient) меньше 0.1, а потом остальные. 3. Внутри получившихся двух групп — по возрастанию среднего количества единиц в продаже (avg_units_per_sale). Формат ввода Таблица sales: • sale_id (int) — уникальный идентификатор продажи • product_id (int) — идентификатор товара • category (text) — категория товара • sale_date (timestamp) — дата и время продажи • units_sold (int) — количество проданных единиц • unit_price (numeric) — цена за единицу товара • discount (numeric) — скидка на товар в процентах, может быть NULL Колонка discount может содержать пропуски. 
+
+Формат вывода Запрос должен вернуть таблицу с полями в таком порядке: • category (text) — категория товара • total_units_sold (int) — общее количество проданных единиц товаров в данной категории • total_revenue (numeric) — общая выручка по категории с учетом скидок, округленная до двух знаков после запятой • avg_price_after_discount (numeric) — средняя цена за единицу товара с учетом скидок, округленная до двух знаков после запятой • price_variation_coefficient (numeric) — коэффициент вариации цены — отношение стандартного отклонения цены к среднему значению, с точностью до трёх знаков после запятой • avg_units_per_sale (numeric) — среднее количество единиц товара в одном заказе, округленное до двух знаков после запятой • no_discount_share (numeric) — доля продаж без скидок в категории (значение от 0 до 1), округленная до трех знаков после запятой sql схема таблиц CREATE TABLE sales ( sale_id INT PRIMARY KEY, product_id INT NOT NULL, category TEXT NOT NULL, sale_date TIMESTAMP NOT NULL, units_sold INT NOT NULL, unit_price NUMERIC(10,2) NOT NULL, discount NUMERIC(4,2) -- скидка в процентах, может быть NULL ); INSERT INTO sales (sale_id, product_id, category, sale_date, units_sold, unit_price, discount) VALUES (1, 103, 'Electronics', '2025-05-12 15:30:00', 3, 150.00, NULL), (2, 403, 'Toys', '2025-05-16 12:00:00', 7, 70.00, NULL), (3, 507, 'Home', '2025-05-20 20:00:00', 4, 85.00, 10.00), (4, 204, 'Toys', '2025-05-13 18:00:00', 3, 50.00, 0.00), (5, 302, 'Home', '2025-05-11 13:00:00', 6, 80.00, 5.00), (6, 204, 'Toys', '2025-05-13 18:00:00', 1, 122.00, 0.00); сама таблица sale_id product_id category sale_date units_sold unit_price discount sale_id product_id category sale_date units_sold unit_price discount 1 103 Electronics 2025-05-12 15:30:00 3 150.00 2 403 Toys 2025-05-16 12:00:00 7 70.00 3 507 Home 2025-05-20 20:00:00 4 85.00 10.00 4 204 Toys 2025-05-13 18:00:00 3 50.00 0.00 5 302 Home 2025-05-11 13:00:00 6 80.00 5.00 6 204 Toys 2025-05-13 18:00:00 1 122.00 0.00 ответ 
+
+Ожидаемый результат category total_units_sold total_revenue avg_price_after_discount price_variation_coefficient avg_units_per_sale no_discount_share category total_units_sold total_revenue avg_price_after_discount price_variation_coefficient avg_units_per_sale no_discount_share Home 10 762.00 76.25 0.003 5.00 0.000 Toys 11 762.00 80.67 0.376 3.67 1.000 Electronics 3 450.00 150.00 0.000 3.00 1.000
+
+**РЕШЕНИЕ**
+WITH sales_calc AS (
+    SELECT
+        category,
+        units_sold,
+        unit_price,
+        COALESCE(discount,0) AS discount,
+        unit_price * (1 - COALESCE(discount,0)/100) AS price_after_discount,
+        CASE WHEN discount IS NULL OR discount = 0 THEN 1 ELSE 0 END AS no_discount_flag
+    FROM sales
+)
+SELECT
+    category,
+    SUM(units_sold) AS total_units_sold,
+    ROUND(SUM(units_sold * price_after_discount),2) AS total_revenue,
+    ROUND(AVG(price_after_discount),2) AS avg_price_after_discount,
+    ROUND(
+        CASE 
+            WHEN AVG(price_after_discount)=0 THEN 0
+            ELSE STDDEV_POP(price_after_discount) / AVG(price_after_discount)
+        END, 3
+    ) AS price_variation_coefficient,
+    ROUND(AVG(units_sold),2) AS avg_units_per_sale,
+    ROUND(SUM(no_discount_flag)::numeric / COUNT(*),3) AS no_discount_share
+FROM sales_calc
+GROUP BY category
+ORDER BY
+    total_revenue DESC,
+    CASE WHEN ROUND(
+        CASE 
+            WHEN AVG(price_after_discount)=0 THEN 0
+            ELSE STDDEV_POP(price_after_discount) / AVG(price_after_discount)
+        END, 3
+    ) < 0.1 THEN 0 ELSE 1 END,
+    avg_units_per_sale ASC;
+
+
+STATUS: РЕШЕНИЕ ПРОВЕРЕНО НА НН
+
+**Анализ пользовательских запросов в службе поддержки** Сложный Фильтрация и поиск по шаблону Вывод данных Фильтрация Сортировка Условные выражения Работа с датами Поиск по шаблону 
+Вы работаете аналитиком в компании, предоставляющей IT-поддержку для сторонней организации. 
+Необходимо выявить пользователей, которые часто обращаются в службу поддержки с вопросами, связанными с конкретными проблемами. 
+Нужно отобрать обращения, которые: 
+• отправлены за последние 30 дней до контрольной даты (30 дней до 01.06.2025 включительно); 
+• содержат в тексте слова, связанные с оплатой, ошибками либо доступом (содержат подстроки: «оплат», «счет», «ошибк», «недоступн», «доступ» без учета регистра); 
+• при этом были получены от пользователей, которые отправили более одного сообщения за рассматриваемый период. Результат отсортировать сначала по e-mail отправителя обращения по алфавиту, затем по дате обращения по убыванию. 
+Формат ввода Таблица support_requests: • request_id (int) — уникальный идентификатор обращения • user_email (text) — e-mail пользователя • message_text (text) — текст обращения • submitted_at (timestamp) — дата и время отправки обращения Данные не содержат пропусков или некорректных значений. Формат вывода Запрос должен вернуть таблицу с полями в таком порядке: • user_email (text) — e-mail пользователя • request_id (int) — уникальный идентификатор обращения • submitted_at (timestamp) — дата и время отправки обращения • message_text (text) — текст обращения 
+
+Таблицы 
+request_id user_email message_text submitted_at request_id user_email message_text submitted_at 
+1 anna.petrov@example.com Не получается оплатить подписку. Проверьте пожалуйста. 2025-05-02 00:00:00 
+2 alexey.belov@example.com Приложение пишет: доступ к премиум-функциям ограничен. Почему? 2025-06-01 00:00:00 
+3 anna.petrov@example.com Добавьте пожалуйста возможность оплаты через PayPal. 2025-06-30 23:59:59 
+4 alexey.belov@example.com Все функции исчезли после обновления приложения. 2025-05-16 13:33:00 
+5 alexey.belov@example.com Оплата прошла - но в истории транзакций пусто. 2025-05-17 11:20:00 результат 
+
+Ожидаемый результат 
+user_email request_id submitted_at message_text user_email request_id submitted_at message_text 
+alexey.belov@example.com 2 2025-06-01 00:00:00 Приложение пишет: доступ к премиум-функциям ограничен. Почему? 
+alexey.belov@example.com 5 2025-05-17 11:20:00 Оплата прошла - но в истории транзакций пусто.
+
+**РЕШЕНИЕ**
+SELECT 
+    sr.user_email,
+    sr.request_id,
+    sr.submitted_at,
+    sr.message_text
+FROM support_requests sr
+WHERE 
+    sr.submitted_at BETWEEN '2025-05-02 00:00:00' AND '2025-06-01 23:59:59'
+    AND LOWER(sr.message_text) ~ 'оплат|счет|ошибк|доступ|недоступн'
+    AND sr.user_email IN (
+        SELECT user_email
+        FROM support_requests
+        WHERE submitted_at BETWEEN '2025-05-02 00:00:00' AND '2025-06-01 23:59:59'
+        GROUP BY user_email
+        HAVING COUNT(*) > 1
+    )
+ORDER BY 
+    sr.user_email ASC,
+    sr.submitted_at DESC;
+
+
+STATUS: РЕШЕНИЕ ПРОВЕРЕНО НА НН
+
+**Анализ посещаемости фитнес-клубов**
+
+Сложный Объединения и подзапросы Вывод данных Объединения Вложенные запросы (подзапросы) Группировка Агрегатные функции Математические операции Вы работаете аналитиком в сети фитнес-клубов. У вас есть информация о посещениях пользователей и абонементах, которые они покупают. Необходимо проанализировать эффективность использования абонементов. Рассчитайте для каждого типа абонемента: • общее количество пользователей, использовавших этот тип абонемента; • общее количество посещений по этому абонементу; • среднее число посещений на одного пользователя (с округлением до одного знака после запятой: если число является целым (например, 4), то при округлении необходимо добавить нули до одного знака после запятой (в примере: 4.0)); • долю пользователей этого абонемента в процентах от общего количества всех пользователей (с округлением до одного знака после запятой: если число является целым (например, 4), то при округлении необходимо добавить нули до одного знака после запятой (в примере: 4.0)). Один пользователь может иметь только один активный абонемент. Отсортируйте результат по типу абонемента в алфавитном порядке. Формат ввода Таблица memberships: • membership_id (int) — уникальный идентификатор абонемента • user_id (int) — уникальный идентификатор пользователя • membership_type (text) — тип абонемента Таблица visits: • visit_id (int) — уникальный идентификатор визита • user_id (int) — идентификатор пользователя • visit_date (timestamp) — дата и время визита Данные не содержат пропусков или некорректных значений. Формат вывода 
+
+Запрос должен вернуть таблицу с полями в таком порядке: • membership_type (text) — тип абонемента • users_count (int) — количество уникальных пользователей с данным типом абонемента • total_visits (int) — общее количество визитов пользователей с этим абонементом • avg_visits_per_user (numeric) — среднее количество визитов на пользователя (округлено до 1 знака после запятой) • user_share (numeric) — доля пользователей в процентах с этим абонементом от общего числа (округлена до 1 знака после запятой) 
+
+таблицы 
+membership: 
+membership_id user_id membership_type membership_id user_id membership_type 
+1 101 Годовой 
+2 102 Годовой 
+3 103 Месячный 
+4 104 Пробный 
+5 105 Годовой 
+
+visits: visit_id user_id visit_date visit_id user_id visit_date 
+1 101 2025-06-01 09:00:00 
+2 101 2025-06-03 18:00:00 
+3 102 2025-06-01 10:00:00 
+4 103 2025-06-02 08:30:00 
+5 103 2025-06-04 19:00:00 
+
+результат 
+Ожидаемый результат membership_type users_count total_visits avg_visits_per_user user_share membership_type users_count total_visits avg_visits_per_user user_share Годовой 3 3 1.0 60.0 Месячный 1 2 2.0 20.0 Пробный 1 0 0.0 20.0
+
+**РЕШЕНИЕ**
+WITH total_users AS (
+    SELECT COUNT(DISTINCT user_id) AS total_count
+    FROM memberships
+),
+visits_by_user AS (
+    SELECT 
+        m.membership_type,
+        m.user_id,
+        COUNT(v.visit_id) AS user_visits
+    FROM memberships m
+    LEFT JOIN visits v ON m.user_id = v.user_id
+    GROUP BY m.membership_type, m.user_id
+)
+SELECT
+    vbu.membership_type,
+    COUNT(vbu.user_id) AS users_count,
+    SUM(vbu.user_visits) AS total_visits,
+    ROUND(AVG(vbu.user_visits)::numeric, 1) AS avg_visits_per_user,
+    ROUND(COUNT(vbu.user_id) * 100.0 / tu.total_count, 1) AS user_share
+FROM visits_by_user vbu
+CROSS JOIN total_users tu
+GROUP BY vbu.membership_type, tu.total_count
+ORDER BY vbu.membership_type;
+
+
 STATUS: решение проверено публичными тестами
 
 **Максимальный средний вес товара**
@@ -217,7 +416,7 @@ JOIN bot_flags b ON d.user_id = b.user_id;
 Оба запроса вернут результат: 60.0
 
 
-STATUS: решение проверено публичными тестами
+STATUS: РЕШЕНИЕ ПРОВЕРЕНО НА НН
 **База для рассылки**
 
 Описание:
@@ -446,36 +645,21 @@ INSERT INTO sessions (client_id, session_start, session_end) VALUES
 (108, '2024-12-25 02:09:10', '2024-12-25 02:18:58');
 
 **РЕШЕНИЕ**
-SELECT DISTINCT client_id
-FROM (
-    SELECT client_id
-    FROM subscribers
-    WHERE max_sub_date >= '2024-12-01'
-      AND min_sub_date <= '2024-01-01'
-) AS active_subs
-WHERE client_id IN (
-    SELECT client_id
-    FROM (
-        SELECT 
-            client_id,
-            AVG(
-                -- Универсальный способ вычисления минут
-                (JULIANDAY(session_end) - JULIANDAY(session_start)) * 24 * 60
-            ) AS avg_session_minutes
-        FROM sessions
-        WHERE session_start >= '2024-06-01'
-          AND session_start < '2024-12-01'
-        GROUP BY client_id
-        HAVING AVG(
-            (JULIANDAY(session_end) - JULIANDAY(session_start)) * 24 * 60
-        ) > 35
-    ) AS active_users
-)
-ORDER BY client_id;
-
-**РЕШЕНИЕ ПОД POSTGRES**
-
----
+SELECT s.client_id
+FROM subscribers s
+WHERE s.min_sub_date <= DATE '2024-01-01'
+  AND s.max_sub_date >= DATE '2024-12-01'
+  AND s.client_id IN (
+    SELECT se.client_id
+    FROM sessions se
+    WHERE se.session_start >= TIMESTAMP '2024-06-01 00:00:00'
+      AND se.session_start <= TIMESTAMP '2024-12-31 23:59:59'
+    GROUP BY se.client_id
+    HAVING AVG(EXTRACT(EPOCH FROM (se.session_end - se.session_start)) / 60.0) > 35
+       AND COUNT(*) >= 3
+  )
+ORDER BY s.client_id
+LIMIT 1;
 
 Ожидаемый результат:
 client_id
