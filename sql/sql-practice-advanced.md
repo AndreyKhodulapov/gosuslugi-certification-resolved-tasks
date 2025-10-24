@@ -1,6 +1,84 @@
-4.10 2025 HIT RATE = 20%; SCORE = тест не засчитан за использование нейронки;
+24.10 2025 HIT RATE = 80%; SCORE = решено 5 из 5;
 
-STATUS: решение проверено публичными тестами
+STATUS: РЕШЕНИЕ ПРОВЕРЕНО НА НН
+**Анализ активности сотрудников техподдержки**
+Сложный
+Вложенные запросы
+Вывод данных
+Фильтрация
+Группировка
+Агрегатные функции
+Вложенные запросы (подзапросы)
+DDL, DML, DCL и TCL
+Вы работаете аналитиком в службе поддержки крупной IT-компании. В базе данных хранится история обработки обращений. Необходимо составить отчет, в котором отобразятся только те сотрудники, у которых:
+• количество обработанных заявок больше среднего по всем сотрудникам;
+• среднее время обработки одной заявки — меньше 1,5 часа.
+Время обработки может быть NULL, если заявка была закрыта автоматически, — такие заявки нужно исключить из анализа.
+Отсортировать результат по ID сотрудника по возрастанию.
+Формат ввода
+Таблица support_tickets:
+• ticket_id (int) — уникальный идентификатор заявки
+• employee_id (int) — идентификатор сотрудника, обработавшего заявку
+• ticket_subject (text) — тема обращения
+• resolution_minutes (int) — время обработки заявки в минутах
+Колонка resolution_minutes может содержать пропуски.
+Формат вывода
+Запрос должен вернуть таблицу с полями в таком порядке:
+• employee_id (int) — уникальный идентификатор сотрудника
+• total_tickets (int) — количество обработанных заявок
+• avg_resolution_hr (numeric) — среднее время обработки заявки в часах, округленное до двух знаков после запятой. Если число является целым (например, 4) или имеет один знак после запятой (например, 4.1), то при округлении необходимо добавить нули до двух знаков после запятой (в примерах: 4.00 и 4.10).
+
+схема sql
+CREATE TABLE support_tickets (
+    ticket_id INT PRIMARY KEY,
+    employee_id INT NOT NULL,
+    ticket_subject TEXT NOT NULL,
+    resolution_minutes INT
+);
+
+INSERT INTO support_tickets (ticket_id, employee_id, ticket_subject, resolution_minutes) VALUES
+(1, 101, 'Ошибка при входе в систему', 55),
+(2, 102, 'Сброс пароля', 70),
+(3, 101, 'Проблема с почтой', NULL),
+(4, 103, 'Не работает принтер', 80),
+(5, 102, 'Ошибка доступа к папке', 40);
+
+Ожидаемый результат
+employee_id
+total_tickets
+avg_resolution_hr
+employee_id
+total_tickets
+avg_resolution_hr
+102	2	0.92
+
+**РЕШЕНИЕ**
+WITH employee_stats AS (
+    SELECT 
+        employee_id,
+        COUNT(*) AS total_tickets,
+        ROUND(AVG(resolution_minutes) / 60, 2) AS avg_resolution_hr
+    FROM support_tickets
+    WHERE resolution_minutes IS NOT NULL
+    GROUP BY employee_id
+),
+avg_tickets AS (
+    SELECT AVG(total_tickets) AS avg_tickets_count
+    FROM employee_stats
+)
+SELECT 
+    es.employee_id,
+    es.total_tickets,
+    TO_CHAR(es.avg_resolution_hr, 'FM9999999990.00') AS avg_resolution_hr
+FROM employee_stats es
+CROSS JOIN avg_tickets at
+WHERE 
+    es.total_tickets > at.avg_tickets_count
+    AND es.avg_resolution_hr < 1.5
+ORDER BY es.employee_id;
+
+
+STATUS: РЕШЕНИЕ ПРОВЕРЕНО НА НН
 **Анализ бонусов сотрудников**
 
 Сложный Оконные функции Вывод данных Группировка Агрегатные функции Математические операции Вы работаете аналитиком в HR-отделе крупной компании. У вас есть две таблицы: • employees — данные о сотрудниках; • bonuses — информация о бонусах, выплаченных сотрудникам. Сформируйте отчет по бонусам, в который войдут только те сотрудники, чья последняя выплата бонуса была выше медианного бонуса по их отделу. Для каждого такого сотрудника и их последнего бонуса укажите: • bonus_date — дата последней выплаты; • bonus_amount — сумма последней выплаты; • department_median_bonus — медианный бонус по отделу; • rank_in_department — место бонуса сотрудника по величине в отделе (1 — самый большой бонус). Ранг — число, которое присваивается каждой строке в результирующем наборе на основе заданного порядка данных. Если две или более строк имеют одинаковое значение, им присваивается одинаковый ранг, но следующий ранг пропускается. Итоговый отчет должен быть отсортирован сначала по названию отдела в алфавитном порядке, затем по рангу бонуса и id сотрудника в возрастающем порядке. Формат ввода Таблица employees: • employee_id (int) — уникальный идентификатор сотрудника • employee_name (text) — имя сотрудника • department (text) — название отдела Таблица bonuses: • bonus_id (int) — уникальный идентификатор бонуса • employee_id (int) — идентификатор сотрудника, получившего бонус • bonus_date (timestamp) — дата и время начисления бонуса • bonus_amount (numeric) — сумма бонуса в рублях Данные не содержат пропусков или некорректных значений. Формат вывода Запрос должен вернуть таблицу с полями в таком порядке: • employee_id (int) — уникальный идентификатор сотрудника • employee_name (text) — имя сотрудника • department (text) — название отдела • bonus_date (timestamp) — дата и время начисления бонуса • bonus_amount (numeric) — сумма текущего бонуса в рублях • department_median_bonus (numeric) — медианный бонус по отделу сотрудника • rank_in_department (int) — место бонуса сотрудника по величине в отделе (1 — самый большой бонус) схемы CREATE TABLE employees ( employee_id INT PRIMARY KEY, employee_name TEXT NOT NULL, department TEXT NOT NULL ); CREATE TABLE bonuses ( bonus_id INT PRIMARY KEY, employee_id INT NOT NULL REFERENCES employees(employee_id), bonus_date TIMESTAMP NOT NULL, bonus_amount NUMERIC(10,2) NOT NULL ); INSERT INTO employees (employee_id, employee_name, department) VALUES (1, 'Иванов И.И.', 'Sales'), (2, 'Петров П.П.', 'Sales'), (3, 'Смирнов С.С.', 'Marketing'), (4, 'Кузнецова А.А.', 'Marketing'), (5, 'Николаев Н.Н.', 'Marketing'); INSERT INTO bonuses (bonus_id, employee_id, bonus_date, bonus_amount) VALUES (101, 1, '2025-04-01 10:00:00', 1000.00), (102, 1, '2025-05-01 10:00:00', 1500.00), (103, 2, '2025-05-01 11:00:00', 1200.00), (104, 3, '2025-03-15 09:30:00', 2000.00), (105, 3, '2025-05-05 10:15:00', 2200.00), (106, 4, '2025-05-01 09:00:00', 1800.00), (107, 5, '2025-05-03 09:45:00', 1100.00); сами таблицы employees employee_id employee_name department employee_id employee_name department 1 Иванов И.И. Sales 2 Петров П.П. Sales 3 Смирнов С.С. Marketing 4 Кузнецова А.А. Marketing 5 Николаев Н.Н. Marketing bonuses bonus_id employee_id bonus_date bonus_amount bonus_id employee_id bonus_date bonus_amount 101 1 2025-04-01 10:00:00 1000.00 102 1 2025-05-01 10:00:00 1500.00 103 2 2025-05-01 11:00:00 1200.00 104 3 2025-03-15 09:30:00 2000.00 105 3 2025-05-05 10:15:00 2200.00 106 4 2025-05-01 09:00:00 1800.00 107 5 2025-05-03 09:45:00 1100.00 
@@ -197,7 +275,7 @@ GROUP BY vbu.membership_type, tu.total_count
 ORDER BY vbu.membership_type;
 
 
-STATUS: решение проверено публичными тестами
+STATUS: РЕШЕНИЕ ПРОВЕРЕНО НА НН
 
 **Максимальный средний вес товара**
 Описание:
@@ -274,38 +352,7 @@ avg_weights AS (
     SELECT 
         item,
         shop,
-        ROUND(AVG(weight), 2) as avg_weight
-    FROM all_markets
-    GROUP BY item, shop
-),
-max_weights AS (
-    SELECT 
-        item,
-        MAX(avg_weight) as max_avg_weight
-    FROM avg_weights
-    GROUP BY item
-)
-SELECT 
-    a.item,
-    m.max_avg_weight,
-    a.shop
-FROM avg_weights a
-JOIN max_weights m ON a.item = m.item AND a.avg_weight = m.max_avg_weight
-ORDER BY a.item, a.shop;
-
-**AЛЬТЕРНАТИВНОЕ РЕШЕНИЕ С ОКОННОЙ ФУНКЦИЕЙ**
-WITH all_markets AS (
-    SELECT item, weight, 'giper_market' as shop FROM giper_market
-    UNION ALL
-    SELECT item, weight, 'local_market' as shop FROM local_market
-    UNION ALL
-    SELECT item, weight, 'super_market' as shop FROM super_market
-),
-avg_weights AS (
-    SELECT 
-        item,
-        shop,
-        ROUND(AVG(weight), 2) as avg_weight,
+        ROUND(AVG(weight)::NUMERIC, 2) as avg_weight,
         RANK() OVER (PARTITION BY item ORDER BY AVG(weight) DESC) as rnk
     FROM all_markets
     GROUP BY item, shop
@@ -666,41 +713,43 @@ client_id
 101
 
 
-STATUS: решение проверено публичными тестами
-**Анализ эффекта удобрений**
+STATUS: РЕШЕНИЕ ПРОВЕРЕНО НА НН
+**Анализ эффекта удобрения**
 
 Описание:
-В рамках эксперимента ростом подсолнечника обрабатывали инновационными видами удобрений. Для оценки эффективности на соседнем поле высадили тот же сорт подсолнечника, только его обрабатывали обычным удобрением. Во время сбора урожая с каждого поля собрали по 500 подсолнечников и посчитали суммарный вес всех семян с каждого подсолнечника.
-
-Рассчитайте t-критерий Стьюдента для каждого из типов удобрений и дайте ответ на вопрос, имеются ли статистически значимые отличия между группами А и В.
-
-Формат ввода:
+В рамках эксперимента ростки подсолнуха обрабатывали инновационными видами удобрения. Для оценки эффективности на соседнем поле высадили тот же сорт подсолнуха, только его обрабатывали обычным удобрением. Во время сбора урожая с каждого поля собрали по 500 подсолнухов и посчитали суммарный вес семян с каждого подсолнуха.
+Рассчитайте t-критерий Стьюдента для каждого из типов удобрения и дайте ответ на вопрос, имеются ли статистически значимые отличия между группами A и B.
+Напомним, что формула t-теста выглядит следующим образом:
+t = (X_1 - X_2) / sqrt(S_1^2 / n_1 + S_2^2 / n_2)
+Где :
+    • X_1 — среднее значение группы A
+    • X_2 — среднее значение группы B
+    • S_1 — стандартное отклонение группы A
+    • S_2 — стандартное отклонение группы B
+    • n_1 — количество наблюдений в группе A
+    • n_2 — количество наблюдений в группе B
+В качестве критического значения t-критерия используйте +/-1.96. То есть если t-критерий окажется больше/меньше критического значения, значит в тесте наблюдаются статистически значимые отличия.
+Формат ввода
 Таблица sunflowers_control:
-
-sunflower_id (int) — уникальный идентификатор растения
-seeds_weight (int) — вес семян растения в граммах
+    • sunflower_id (int) — уникальный идентификатор растения
+    • seeds_weigh (int) — вес семян растения в граммах
 Таблица sunflowers_test1:
-
-sunflower_id (int) — уникальный идентификатор растения
-seeds_weight (int) — вес семян растения в граммах
+    • sunflower_id (int) — уникальный идентификатор растения
+    • seeds_weigh (int) — вес семян растения в граммах
 Таблица sunflowers_test2:
-
-sunflower_id (int) — уникальный идентификатор растения
-seeds_weight (int) — вес семян растения в граммах
+    • sunflower_id (int) — уникальный идентификатор растения
+    • seeds_weigh (int) — вес семян растения в граммах
 Таблица sunflowers_test3:
-
-sunflower_id (int) — уникальный идентификатор растения
-seeds_weight (int) — вес семян растения в граммах
+    • sunflower_id (int) — уникальный идентификатор растения
+    • seeds_weigh (int) — вес семян растения в граммах
 Данные не содержат пропусков или некорректных значений.
-
-Формат вывода:
+Формат вывода
 Запрос должен вернуть таблицу с полями в таком порядке:
-
-type (int) — тип удобрения
-t_crit (float) — значение t-критерия, округленное до 2 знаков после запятой
-diff (float) — разница средних весов тестовой и контрольной группы, округленная до 2 знаков после запятой
-result (string) — флаг статистической значимости изменения
-Таблица должна быть отсортирована по колонке type по возрастанию.
+    • type (int) — тип удобрения
+    • t_crit (float) — значение t-критерия, округленное до 2 знаков после запятой
+    • mean_diff (float) — разница средних тестовой и контрольной группы, округленная до 2 знаков после запятой
+    • result (string) — флаг статистической значимости изменения
+Таблица должна быть отсортирована по колонке type по убыванию.
 
 Код:
 
@@ -830,45 +879,49 @@ INSERT INTO sunflowers_control (sunflower_id, seeds_weight) VALUES
 
 **РЕШЕНИЕ**
 
-WITH stats_control AS (
+WITH control_stats AS (
     SELECT 
-        AVG(seeds_weight) AS avg_control,
-        STDDEV_POP(seeds_weight) AS std_control,
+        AVG(seeds_weight) AS mean_control,
+        STDDEV_SAMP(seeds_weight) AS std_control,
         COUNT(*) AS n_control
     FROM sunflowers_control
 ),
-stats_test AS (
-    SELECT 1 AS type, AVG(seeds_weight) AS avg_test, STDDEV_POP(seeds_weight) AS std_test, COUNT(*) AS n_test FROM sunflowers_test1
+test_groups AS (
+    SELECT 1 AS type, AVG(seeds_weight) AS mean_test, STDDEV_SAMP(seeds_weight) AS std_test, COUNT(*) AS n_test
+    FROM sunflowers_test1
     UNION ALL
-    SELECT 2 AS type, AVG(seeds_weight), STDDEV_POP(seeds_weight), COUNT(*) FROM sunflowers_test2
+    SELECT 2 AS type, AVG(seeds_weight) AS mean_test, STDDEV_SAMP(seeds_weight) AS std_test, COUNT(*) AS n_test
+    FROM sunflowers_test2
     UNION ALL
-    SELECT 3 AS type, AVG(seeds_weight), STDDEV_POP(seeds_weight), COUNT(*) FROM sunflowers_test3
+    SELECT 3 AS type, AVG(seeds_weight) AS mean_test, STDDEV_SAMP(seeds_weight) AS std_test, COUNT(*) AS n_test
+    FROM sunflowers_test3
 )
 SELECT 
-    t.type,
+    tg.type,
     ROUND(
-        (t.avg_test - c.avg_control) /
-        SQRT(POWER(t.std_test, 2)/t.n_test + POWER(c.std_control, 2)/c.n_control)
-    , 2) AS t_crit,
-    ROUND(t.avg_test - c.avg_control, 2) AS diff,
+        (tg.mean_test - c.mean_control) / 
+        SQRT(POWER(tg.std_test, 2) / tg.n_test + POWER(c.std_control, 2) / c.n_control),
+        2
+    ) AS t_crit,
+    ROUND(tg.mean_test - c.mean_control, 2) AS mean_diff,
     CASE 
-        WHEN ABS(
-            (t.avg_test - c.avg_control) /
-            SQRT(POWER(t.std_test, 2)/t.n_test + POWER(c.std_control, 2)/c.n_control)
-        ) > 2 THEN 'yes'
-        ELSE 'no'
+        WHEN ABS((tg.mean_test - c.mean_control) / 
+                SQRT(POWER(tg.std_test, 2) / tg.n_test + POWER(c.std_control, 2) / c.n_control)) > 1.96 
+        THEN 'True'
+        ELSE 'False'
     END AS result
-FROM stats_test t
-CROSS JOIN stats_control c
-ORDER BY t.type;
+FROM test_groups tg
+CROSS JOIN control_stats c
+ORDER BY tg.type DESC;
 
+Ожидаемый результат
 
-Ожидаемый результат:
-type | t_crit | diff  | result
------|--------|-------|-------
-1    | -0.12  | -1.24 | no
-2    | -0.82  | -8.44 | no
-3    | -1.65  | -17.04| no
+mean_diff
+type/t_crit/mean_diff/result
+3	-1.00	-8.35	False	
+2	-0.68	-6.15	False	
+1	0.53	4.74	False	
+
 
 STATUS: решение проверено публичными тестами
 **Премирование таксистов**
