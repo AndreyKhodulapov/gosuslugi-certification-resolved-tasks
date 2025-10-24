@@ -1,3 +1,5 @@
+24.10 2025 HIT RATE = 25% SCORE = не зачли за нейронку
+
 **Существует структура базы данных. Какая команда на месте [...] позволит создать новую запись в таблице role?**
 
 1 -- структура базы данных
@@ -237,3 +239,154 @@ manuel получит доступ только на чтение таблицы
 Репликация
 Вертикальное шардирование
 Горизонтальное шардирование
+
+
+**Выберите корректный вывод по следующему запросу:**
+
+select date_trunc('quarter', created_at), avg(sales) 
+from revenue 
+group by 1
+
+Группировка по дате покупки
+Ошибка: нет ORDER BY
+Только продажи после 1 января
+Ошибка округления дат
+V **Группировка по кварталам**
+
+
+**В таблице customers есть поле interests типа text[]. В некоторых строках уже есть значения вроде '{music, travel}'. Вам нужно добавить тег 'sports' только тем клиентам, у кого его нет. Ваш коллега предложил код:**
+
+update customers
+set interests = interests || 'sports'
+where not 'sports' = any(interests);
+
+Какой из вариантов корректнее и безопаснее реализует задачу?
+
+V **update customers set interests = array_append(interests, 'sports') where not 'sports' = any(interests)**
+update customers set interests = array_prepend('sports', interests)
+update customers set interests = interests || array['sports'] where interests != 'sports'
+update customers set interests = 'sports' where interests @> array['sports']
+update customers set interests = interests || 'sports' where interests is null
+
+
+**Почему этот запрос может работать медленно?**
+
+select id 
+from orders 
+where customer_id in (select id from blacklisted_customers)
+
+SELECT нельзя использовать в подзапросе
+V **Подзапрос не индексирован**
+Нужно заменить на JOIN
+WHERE нельзя использовать с IN
+IN не работает с подзапросами
+
+
+**Какое влияние окажет добавление индекса на поле created_at в следующем запросе?**
+select * from logs where created_at >= now() - interval '1 day'
+
+Уменьшит размер таблицы
+Увеличит количество операций записи
+Увеличит количество возвращаемых строк
+V **Ускорит выборку при большом объеме данных**
+Приведет к ошибке времени
+
+
+**Дана транзакция T1:**
+
+BEGIN;
+SELECT balance FROM accounts WHERE id = 42;
+-- здесь пауза, в это время другая транзакция обновляет balance
+SELECT balance FROM accounts WHERE id = 42;
+COMMIT;
+
+Вторая транзакция в это время выполнила UPDATE accounts SET balance = 200 WHERE id = 42; и зафиксировала изменения между двумя SELECT.
+Что увидит транзакция T1 при уровне изоляции Read Committed?
+
+
+Запрос заблокируется до конца второй транзакции
+Одно и то же значение balance
+Ошибку сериализации
+Только новое значение balance
+V **Разные значения balance в двух SELECT**
+
+
+**Что может быть проблемой при сравнении чисел типа float?**
+
+select * from results where score = 0.1
+
+float — устаревший тип
+score нельзя сравнивать
+PostgreSQL не поддерживает float
+V **0.1 может быть представлен неточно в памяти**
+= работает только с целыми
+
+
+**Выберите верное утверждение о запросе:**
+
+create materialized view some_view as select * from some_table order by id desc with no data
+
+Чтение возможно сразу после создания представления some_view
+Так как использовалось выражение select *, при модификации таблицы some_table изменятся и колонки в преставлении some_view
+Возможна операция refresh materialized view concurrently some_view
+V **Для представления some_view можно создать индекс**
+Возможна операция вставки в представление some_view
+
+
+**В системе при удалении пользователя:**
+delete from users where id = 123;
+наблюдается задержка. В таблице orders задано: foreign key (user_id) references users(id) on delete cascade
+Какой способ поможет оценить влияние каскадного удаления на производительность?
+
+
+Перевести таблицу orders в UNLOGGED
+Использовать VACUUM FULL на обеих таблицах
+Добавить ON DELETE SET NULL вместо CASCADE
+V **Выполнить EXPLAIN ANALYZE delete from users where id = 123**
+Временно удалить каскадный внешний ключ
+
+
+**Вы хотите запретить изменение зарплаты сотрудника, если новое значение меньше текущего. Создан следующий триггер:**
+
+create or replace function prevent_salary_drop() returns trigger as $$
+begin
+  if NEW.salary < OLD.salary then
+    raise exception 'Salary cannot be decreased';
+  end if;
+  return NEW;
+end;
+\$$ language plpgsql;
+create trigger trg_no_salary_drop
+before update on employees
+for each row
+execute function prevent_salary_drop;
+
+Как убедиться, что триггер сработает корректно?
+Использовать VACUUM на таблице employees
+Посмотреть в pg_stat_activity
+Проверить, изменился ли тип поля salary
+Выполнить EXPLAIN UPDATE
+V **Попробовать обновить зарплату на меньшее значение и проверить, вызвана ли ошибка**
+
+
+**Пользователь app_user выполняет запрос:**
+select * from orders;
+Но получает ошибку:
+ERROR: permission denied for relation orders
+Почему возникает ошибка, если orders — это представление, и права на неё явно выданы?
+
+
+Пользователю не выдали роль pg_read_all_data
+Ошибка вызвана отсутствием индексов
+V **У пользователя нет прав на таблицы, используемые внутри представления**
+Представления не требуют дополнительных прав
+Представление создано без указания SECURITY DEFINER
+
+
+**Вы хотите разделить таблицу users на два шарда по регионам. Какой шаг необходим при использовании PostgreSQL с Citus?**
+
+Переместить все таблицы в новую базу
+Настроить шард-каталог вручную
+V **Выполнить select create_distributed_table('users', 'region')**
+Установить расширение citus
+Создать индекс по колонке region
