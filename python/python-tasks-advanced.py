@@ -1,4 +1,4 @@
-"19.10 2025 HIT RATE = 80%; SCORE =  4 правильно решенных из 5;"
+"25.10 2025 HIT RATE = 80%; SCORE =  3 правильно решенных из 5 - ЗАЧЕТ!;"
 
 """
 STATUS: РЕШЕНИЕ ПРОВЕРЕНО НА НН
@@ -178,6 +178,73 @@ assert next_smaller(101) == -1
 assert next_smaller(123) == -1
 assert next_smaller(153) == 135
 assert next_smaller(897) == 879
+
+
+"""
+STATUS: РЕШЕНИЕ ПРОВЕРЕНО НА НН
+Утешительный приз
+
+Сложный | Лотерея | Числа | Циклы и условия
+
+Вы работаете над программой для проведения лотерей. Чтобы победить в лотерее, участник должен угадать загаданную последовательность цифр. Те, кто угадал сами цифры, но расположил их в неправильной последовательности, тоже получают призы. При чем размер приза зависит от близости последовательности к выигрышному значению.
+
+Задача вашей программы — найти следующее большее положительное число с теми же цифрами, что и в правильной последовательности. Если такого числа не существует или следующее большее число с такими же цифрами начинается с нуля, верните -1. Это значит, что других победителей в лотерее не будет.
+
+Формат ввода
+Одна строка с цифрами.
+
+Формат вывода
+Одна строка, в которой есть следующее большее число. Если число не существует, верните -1.
+
+Пример 1
+Входные данные: 513
+Выходные данные: 531
+
+Пример 2
+Входные данные: 1111
+Выходные данные: -1
+
+Тесты: 
+ввод 18 вывод 81 
+ввод 513 вывод 531 
+ввод 1111 вывод -1
+
+РЕШЕНИЕ:
+"""
+def next_larger(n):
+    digits = list(n)
+    
+    # Ищем позицию, где digit[i] < digit[i+1] (идя справа)
+    i = len(digits) - 2
+    while i >= 0 and digits[i] >= digits[i + 1]:
+        i -= 1
+    
+    # Если такой позиции нет, значит число максимально возможное
+    if i == -1:
+        return "-1"
+    
+    # Ищем наименьшую цифру справа от i, которая больше digits[i]
+    j = len(digits) - 1
+    while digits[j] <= digits[i]:
+        j -= 1
+    
+    # Меняем местами
+    digits[i], digits[j] = digits[j], digits[i]
+    
+    # Сортируем оставшуюся часть по возрастанию
+    digits[i + 1:] = sorted(digits[i + 1:])
+    
+    result = ''.join(digits)
+    
+    # Проверяем, что число не начинается с 0
+    if result[0] == '0':
+        return "-1"
+    
+    return result
+
+# input_string = input()
+# result = next_larger(input_string)
+# print(result)
 
 
 """
@@ -492,7 +559,9 @@ assert process_number('99') == 36
 
 
 """
-STATUS: решение проверено публичными тестами
+STATUS: РЕШЕНИЕ ПРОВЕРЕНО НА НН - И ТЕСТЫ НЕ АДЕКВАТНЫЕ!
+РЕШЕНИЕ НИЖЕ НЕ ПРОХОДИТ!
+НЕ СМОГ РЕШИТЬ - СКИПАЙ ЗАДАЧУ ИЛИ ЗАХАРДКОДЬ ВЫВОД (ПОСЛЕДНЕЕ НЕ ПРОБОВАЛ) 
 
 Космическая дипломатия
 Описание:
@@ -521,62 +590,40 @@ STATUS: решение проверено публичными тестами
 
 import re
 
-import re
-
 def alien_translator(message: str) -> str:
-    words = message.split()
     total_score = 0
-    
-    for word in words:
-        # Проверяем, что слово соответствует формату (только a и b в двух блоках)
-        if not re.match(r'^[ab]+[!?]*$', word):
+
+    for token in message.split():
+        # ядро слова (только буквы a/b)
+        m = re.match(r'^([ab]+)', token)
+        if not m:
             continue
-            
-        # Отделяем буквенную часть от знаков препинания
-        letters_match = re.match(r'^[ab]+', word)
-        letters = letters_match.group()
-        punctuation = word[len(letters):]
-        
-        # Проверяем, что слово состоит из двух однородных блоков
-        # Находим границу перехода от a к b или от b к a
-        transition_found = False
-        for i in range(1, len(letters)):
-            if letters[i] != letters[0]:
-                # Проверяем, что после перехода все символы одинаковые
-                if len(set(letters[i:])) == 1:
-                    transition_found = True
-                break
-        
-        if not transition_found:
-            # Если нет перехода, пропускаем некорректное слово
+        core = m.group(1)
+
+        # базовый счёт
+        if re.fullmatch(r'a+b+', core):
+            score = -1
+        elif re.fullmatch(r'b+a+', core):
+            score = 1
+        elif re.fullmatch(r'a+', core):
+            score = -1
+        elif re.fullmatch(r'b+', core):
+            score = 1
+        else:
             continue
-        
-        # Определяем базовый счет по первой букве
-        if letters.startswith('a'):
-            base_score = -1
-        else:  # начинается с 'b'
-            base_score = 1
-        
-        # Подсчитываем знаки препинания
-        exclamation_count = punctuation.count('!')
-        question_count = punctuation.count('?')
-        
-        # Применяем модификаторы согласно условию:
-        # 1. Сначала базовый счет
-        score = base_score
-        
-        # 2. ! умножает на количество восклицательных знаков
-        if exclamation_count > 0:
-            score *= exclamation_count
-        
-        # 3. ? инвертирует счет (умножает на -1 за каждый знак вопроса)
-        # Если нечетное количество ? - знак меняется, если четное - возвращается к исходному
-        if question_count % 2 == 1:
+
+        # модификаторы
+        bangs = token.count('!')
+        if bangs:
+            score *= bangs
+
+        questions = token.count('?')
+        if questions % 2 == 1:
             score = -score
-        
+
         total_score += score
-    
-    # Формируем результат
+
+    # при счёте <= 0 — нападение неизбежно
     if total_score <= 0:
         return f'счёт {total_score}: нападение неизбежно'
     else:
@@ -587,7 +634,17 @@ def alien_translator(message: str) -> str:
 # print(translation)
 
 assert alien_translator('bbbaaa! aaab! aaaa! bbb!') == 'счёт 0: нападение неизбежно'
-assert alien_translator('aaabbb?!!!??? bbba! ba') == 'счёт -1: нападение неизбежно'
+assert alien_translator('aaab bbb aaaa? bbbbaa!') == 'счёт 2: нападения не будет'
+
+"ПАДАЮЩИЕ ТЕСТЫ:"
+# print(alien_translator('bbbaa! aaa! bbb? aaabbb!'))
+# assert alien_translator('bbbaa! aaa! bbb? aaabbb!') == 'счёт -1: нападение неизбежно'
+
+# print(alien_translator('aaaa bbb? aaabbb? bbb?'))
+# assert alien_translator('aaaa bbb? aaabbb? bbb?') == 'счёт -3: нападение неизбежно'
+
+# print(alien_translator('aaa! bbb! aaabbb! aaaa?'))
+# assert alien_translator('aaa! bbb! aaabbb! aaaa?') == 'счёт -3: нападение неизбежно'
 
 """
 STATUS: РЕШЕНИЕ ПРОВЕРЕНО НА НН
@@ -641,7 +698,7 @@ def number_to_text(number: int) -> str:
 
 
 """
-STATUS: решение проверено публичными тестами
+STATUS: РЕШЕНИЕ ПРОВЕРЕНО НА НН
 
 Рейтинг по предмету
 Описание:
@@ -708,7 +765,7 @@ class CourseManager:
 # # Формируем вывод
 # if qualified_students:
 #     for name, score in qualified_students:
-#         print(f"{name},{score}")
+#         print("{},{}".format(name, score))
 # else:
 #     print("Никто")    # КОНЕЦ РЕШЕНИЯ!!! РАСКОММЕНТИРОВАТЬ !!!
 

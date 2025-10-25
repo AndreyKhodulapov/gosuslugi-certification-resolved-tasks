@@ -1,4 +1,90 @@
-24.10 2025 HIT RATE = 80%; SCORE = решено 5 из 5;
+24.10 2025 HIT RATE = 80%; SCORE = решено 4 из 5 - ЗАЧЕТ;
+
+STATUS: РЕШЕНИЕ ПРОВЕРЕНО НА НН
+**Отчет по брендам в магазине детских товаров**
+
+Для магазина детских товаров нужно определить, какие бренды обеспечивают наибольшую выручку и стабильный спрос. Сформируйте отчет, в котором отобразите информацию по брендам, у которых:
+
+среднее количество единиц в заказе на один товар больше 2;
+
+общая выручка больше средней выручки по всем брендам.
+
+Отчет должен содержать:
+
+название бренда;
+
+общая выручка (кол-во × цена) по бренду;
+
+среднее количество единиц на заказ;
+
+количество заказов бренда.
+
+Сортировка:
+Сначала по общей выручке (total_revenue) по убыванию, затем по названию бренда (brand) по алфавиту.
+
+Структура таблицы orders:
+order_id (int) — уникальный идентификатор заказа
+
+order_date (timestamp) — дата и время совершения заказа
+
+product_id (int) — уникальный идентификатор товара
+
+product_name (string) — название товара
+
+brand (string) — бренд товара
+
+quantity (int) — количество заказанного товара
+
+price_per_unit (numeric) — цена за единицу товара в рублях
+
+Примечание: Данные не содержат пропусков или некорректных значений.
+
+Требования к формату вывода:
+brand (string) — бренд товара
+
+total_revenue (numeric) — общая выручка по бренду
+
+avg_units_per_order (numeric) — среднее количество единиц товара в одном заказе (округлено до 2 знаков после запятой — если число является целым (например, 4) или имеет один знак после запятой (например, 4.1), то при округлении необходимо добавить нули до двух знаков после запятой (в примерах: 4.00 и 4.10))
+
+total_orders (int) — общее количество заказов по бренду
+
+Пример данных из таблицы orders:
+order_id	order_date	product_id	product_name	brand	quantity	price_per_unit
+18	2025-04-01 11:40:00	501	Action Figure	Bandai	2	19.00
+5	2025-04-04 09:50:00	104	Castle Set	Lego	2	155.00
+27	2025-04-01 16:10:00	401	Barbie Doll	Mattel	2	25.00
+23	2025-04-03 13:15:00	303	Superhero Figures	Hasbro	2	22.00
+10	2025-04-01 09:30:00	301	Puzzle Set	Hasbro	3	20.00
+6	2025-04-03 14:20:00	103	Fire Truck	Lego	4	160.00
+
+Ожидаемый результат:
+brand	total_revenue	avg_units_per_order	total_orders
+Lego	1460.00	3.00	3
+
+**РЕШЕНИЕ**
+WITH brand_stats AS (
+    SELECT 
+        brand,
+        SUM(quantity * price_per_unit) as total_revenue,
+        AVG(quantity) as raw_avg_units,
+        COUNT(DISTINCT order_id) as total_orders
+    FROM orders
+    GROUP BY brand
+),
+overall_stats AS (
+    SELECT AVG(total_revenue) as avg_revenue
+    FROM brand_stats
+)
+SELECT 
+    brand,
+    total_revenue,
+    TO_CHAR(raw_avg_units, 'FM9999999999.00') as avg_units_per_order,
+    total_orders
+FROM brand_stats, overall_stats
+WHERE raw_avg_units > 2
+    AND total_revenue > avg_revenue
+ORDER BY total_revenue DESC, brand ASC;
+
 
 STATUS: РЕШЕНИЕ ПРОВЕРЕНО НА НН
 **Анализ активности сотрудников техподдержки**
