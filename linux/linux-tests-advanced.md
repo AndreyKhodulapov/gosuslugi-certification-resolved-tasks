@@ -225,13 +225,13 @@ See "systemctl status network.service" and "journalctl -xe" for details.
 
 ### 12. Вы хотите проверить, сколько времени заняла активация служб при старте системы. Какую команду следует использовать?
 
-✅ **top**
+top
 
 dmesg
 
 journalctl -xe
 
-systemd-analyze blame
+✅ **systemd-analyze blame**
 
 systemctl list-units
 
@@ -340,9 +340,9 @@ motprobe: ERROR: could not insert 'acpi_cpufreq': No such device
 
 ### 17. Какое действие наиболее оправдано для выяснения причины проблемы?
 
-Проверить, поддерживает ли текущий CPU управление частотой через ACPI
+✅ **Проверить, поддерживает ли текущий CPU управление частотой через ACPI**
 
-✅ **Установить ядро более ранней версии с поддержкой модуля**
+Установить ядро более ранней версии с поддержкой модуля
 
 Принудительно загрузить модуль с ключом — force
 
@@ -361,7 +361,7 @@ xargs -n 1 echo < filelist.txt
 
 while read line; do echo "$line"; done < filelist.txt
 
-✅ **while IFS= read --r line; do echo "$line"; done < filelist.txt**
+✅ **while IFS= read -r line; do echo "$line"; done < filelist.txt**
 
 
 ### 19. Какой фрагмент bash-кода безопасно выведет по строке имена всех файлов .log, игнорируя те, что содержат пробелы в имени?

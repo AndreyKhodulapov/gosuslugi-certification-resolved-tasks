@@ -157,7 +157,7 @@ regexp_replace искажает числовые значения, а group by m
 
 ### 10. В таблице products поле sku содержит коды вида "PRD-001-ABC". Какой вариант гарантированно извлечёт числовую часть 001 в любой СУБД, поддерживающей стандарт ANSI SQL?
 
-✅ **select substr(sku, 4, 3) from products**
+select substr(sku, 4, 3) from products
 
 select split_part(sku, '-', 2) from products
 
@@ -165,7 +165,7 @@ select regexp_replace(sku, '[^0-9]', '', 'g') from products
 
 select regexp_substr(sku, '[0-9]') from products
 
-select substring(sku, 5, 3) from products
+✅ **select substring(sku, 5, 3) from products**
 
 ### 11. Как обновить материальное представление, чтобы оно учитывало только данные за последние 3 месяца?
 
@@ -197,9 +197,9 @@ select * from (select * from employees) > salary
 
 запрос вернет уникальные значения по всем колонкам, которые прописаны в SELECT, а остальные колонки проигнорирует
 
-запрос вернет уникальные значения по колонкам, которые прописаны и в GROUP BY, и в SELECT
+✅ **запрос вернет уникальные значения по колонкам, которые прописаны и в GROUP BY, и в SELECT**
 
-✅ **запрос вернет ошибку.**
+запрос вернет ошибку.
 
 запрос вернет уникальные значения по всем колонкам из таблицы
 
@@ -319,9 +319,9 @@ order by month
 
 Выберите вариант, где для каждого запроса указана ошибка, из-за которой запрос либо не сработает, либо вернет неверные значения:
 
-regexp_replace возвращает некорректное значение для CAST, а date_trunc('YEAR' , transaction_date::date ) = "2023" записано с ошибкой
+✅ **regexp_replace возвращает некорректное значение для CAST, а date_trunc('YEAR' , transaction_date::date ) = "2023" записано с ошибкой**
 
-✅ **regexp_replace искажает числовые значения, а group by month некорректно сгруппирует данные**
+regexp_replace искажает числовые значения, а group by month некорректно сгруппирует данные
 
 to_char(transaction_date , 'YYYY-MM" ) не поддерживает преобразование дат, а sum ( ... ) не суммирует значения типа numeric
 
